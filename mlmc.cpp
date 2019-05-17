@@ -1,14 +1,12 @@
 #include <iostream>
+#include <fstream>
 #include <vector>
 #include <chrono>
 #include <random>
 #include <math.h>
 #include <iomanip>
-#include "matplotlibcpp.h"
 #define double long double
 using namespace std;
-namespace plt = matplotlibcpp;
-typedef pair<double, double> Pair;
 
 const double zero = 0.0;
 const int Lmax = 30;
@@ -25,6 +23,8 @@ vector<double> aveZ(Lmax);
 vector<double> varZ(Lmax);
 vector<double> Cost(Lmax);
 vector<double> Kurtosis(Lmax);
+
+double alpha, beta;
 
 // It constructs a trivial random generator engine from a time-based seed
 unsigned seed = chrono::system_clock::now().time_since_epoch().count();
@@ -64,7 +64,7 @@ double regression(vector <double> x, vector <double> y) {
     return (n * sum_x_y - sum_x * sum_y) / (n * sum_x_x - sum_x * sum_x);
 }
 
-void mlmc_calc(int l, double M) {
+void mlmc_calc(int l, double M, double (*func)(double, double)) {
     double z3= 0.0, z4 = 0.0;
 
     for (int n = 0; n < dN[l]; n++) {
@@ -73,7 +73,7 @@ void mlmc_calc(int l, double M) {
         double max_sum = 0.0, sum_max = 0.0;
         for (int m = 0; m < M; m++) {
             double y = distribution(generator);
-            double f = f3(x, y);
+            double f = func(x, y);
 
             max_sum += max(zero, f);
             sum_max += f;
@@ -98,7 +98,7 @@ void mlmc_calc(int l, double M) {
 
             for (int m = 0; m < M / 2; m++) {
                 double y = distribution(generator);
-                double f = f3(x, y);
+                double f = func(x, y);
 
                 first_max_sum += max(zero, f);
                 max_sum += max(zero, f);
@@ -109,7 +109,7 @@ void mlmc_calc(int l, double M) {
 
             for (int m = M / 2; m < M; m++) {
                 double y = distribution(generator);
-                double f = f3(x, y);
+                double f = func(x, y);
 
                 second_max_sum += max(zero, f);
                 max_sum += max(zero, f);
@@ -155,7 +155,7 @@ void mlmc_calc(int l, double M) {
     Kurtosis[l] /= (varZ[l] * varZ[l]);
 }
 
-Pair mlmc_estimate_alpha_beta(int L, double n, double M) {
+void mlmc_estimate_alpha_beta(int L, double n, double M, double (*f)(double, double)) {
     fill(N.begin(), N.end(), n);
     fill(dN.begin(), dN.end(), n);
     fill(P.begin(), P.end(), 0.0);
@@ -166,8 +166,9 @@ Pair mlmc_estimate_alpha_beta(int L, double n, double M) {
     cout << " l    aveZ          aveP          varZ          varP\n";
     cout << "----------------------------------------------------------\n";
 
-    for (int l = 0; l <= L; l++, M *= 2) {
-        mlmc_calc(l, M);
+    for (int l = 0; l <= L; l++) {
+        mlmc_calc(l, M, f);
+        M *= 2;
 
         cout << setw(2) << right << l << "    ";
         cout << setprecision(5) << scientific;
@@ -182,7 +183,7 @@ Pair mlmc_estimate_alpha_beta(int L, double n, double M) {
         x[l - 1] = l;
         y[l - 1] = -log2(aveZ[l]);
     }
-    double alpha = regression(x, y);
+    alpha = regression(x, y);
     cout << "alpha = " << fixed << alpha << "\n";
 
     // liner regression for beta
@@ -190,13 +191,11 @@ Pair mlmc_estimate_alpha_beta(int L, double n, double M) {
         x[l - 1] = l;
         y[l - 1] = -log2(varZ[l]);
     }
-    double beta = regression(x, y);
+    beta = regression(x, y);
     cout << "beta =  " << fixed << beta << "\n\n";
-
-    return Pair(alpha, beta);
 }
 
-bool mlmc_eval_eps(int L, double eps, double alpha, double beta) {
+void mlmc_eval_eps(int L, double eps, double (*f)(double, double)) {
     fill(N.begin(), N.end(), 0);
     fill(dN.begin(), dN.end(), 0);
     fill(P.begin(), P.end(), zero);
@@ -222,9 +221,10 @@ bool mlmc_eval_eps(int L, double eps, double alpha, double beta) {
 
         double M = 1;
         double sum = 0.0;
-        for (int l = 0; l <= L; l++, M *= 2) {
-            mlmc_calc(l, M);
+        for (int l = 0; l <= L; l++) {
+            mlmc_calc(l, M, f);
             sum += sqrt(varZ[l] * Cost[l]);
+            M *= 2;
         }
 
         double diff = 0;
@@ -240,7 +240,7 @@ bool mlmc_eval_eps(int L, double eps, double alpha, double beta) {
             if (rem > sqrt(theta) * eps) {
                 if (L == Lmax - 1) {
                     cout << " Level over !!!\n";
-                    return false;
+                    exit(1);
                 } else {
                     converged = false;
                     L++;
@@ -258,7 +258,10 @@ bool mlmc_eval_eps(int L, double eps, double alpha, double beta) {
 
     double M = 1;
     double mlmc_cost = 0;
-    for (int l = 0; l <= L; l++, M *= 2) mlmc_cost += N[l] * M;
+    for (int l = 0; l <= L; l++) {
+        mlmc_cost += N[l] * M;
+        M *= 2;
+    }
 
     double std_cost = varP[L] * (M / 2) / ((1.0 - theta) * eps * eps);
 
@@ -266,91 +269,73 @@ bool mlmc_eval_eps(int L, double eps, double alpha, double beta) {
     cout << eps << "   " << mlmc_cost << "   " << std_cost << "   " << std_cost / mlmc_cost << "    ";
     for (int i = 0; i <= L; i++) cout << N[i] << " ";
     cout << "\n";
-
-    return true;
 }
 
 template <typename T>
-vector <T> vector_slice(vector <T> vec, int l, int r, int mode = 1) {
-    vector <T> ret;
+void file_write(fstream &fio, vector <T> vec, int l, int r, int mode = 1) {
     if (mode == 1) {
-        for (int i = l; i <= r; i++) ret.push_back(vec[i]);
+        for (int i = l; i <= r; i++) fio << vec[i] << " ";
     } else if (mode == 2) {
-        for (int i = l; i <= r; i++) ret.push_back(log2(vec[i]));
+        for (int i = l; i <= r; i++) fio << log2(vec[i]) << " ";
     } else if (mode == 10) {
-        for (int i = l; i <= r; i++) ret.push_back(log10(vec[i]));
+        for (int i = l; i <= r; i++) fio << log10(vec[i]) << " ";
     }
-
-    return ret;
+    fio << "\n";
 }
 
 int main() {
-    double alpha = -1;
-    double beta = -1;
+    fstream fio;
+    fio.open("result.txt", ios::trunc | ios::out | ios::in);
 
     vector <int> level(Lmax);
     for (int l = 0; l < Lmax; l++) level[l] = l;
 
-    if (alpha < 0 || beta < 0) {
-        int sz = 10;
-        Pair param = mlmc_estimate_alpha_beta(sz, 200000, 1);
+    file_write(fio, level, 1, Lmax - 1);
 
-        plt::title("log2 variance / level");
-        plt::plot(vector_slice(level, 1, sz), vector_slice(varP, 1, sz, 2), "r^-");
-        plt::plot(vector_slice(level, 1, sz), vector_slice(varZ, 1, sz, 2), "b^-");
-        plt::xlim(0, sz);
-        plt::show();
+    int sz = 10;
+    mlmc_estimate_alpha_beta(sz, 200000, 1, f1);
 
-        plt::title("log2 |mean| / Level");
-        plt::plot(vector_slice(level, 1, sz), vector_slice(aveP, 1, sz, 2), "rs-");
-        plt::plot(vector_slice(level, 1, sz), vector_slice(aveZ, 1, sz, 2), "bs-");
-        plt::xlim(0, sz);
-        plt::show();
+    file_write(fio, varZ, 1, sz, 2);
+    file_write(fio, varP, 1, sz, 2);
+    file_write(fio, aveZ, 1, sz, 2);
+    file_write(fio, aveP, 1, sz, 2);
+    file_write(fio, Kurtosis, 1, sz);
 
-        plt::title("kurtosis");
-        plt::plot(vector_slice(level, 1, sz), vector_slice(Kurtosis, 1, sz), "rs-");
-        plt::xlim(0, sz);
-        plt::show();
+    vector <double> eps;
+    eps.push_back(0.002);
+    eps.push_back(0.001);
+    eps.push_back(0.0005);
+    eps.push_back(0.0002);
+    eps.push_back(0.0001);
 
-        alpha = param.first;
-        beta = param.second;
-    }
-
-    double eps[6] = {0.005, 0.002, 0.001, 0.0005, 0.0002, 0.0001};
-    string graphic[6] = {"b^-", "g^-", "r^-", "bs-", "gs-", "rs-"};
+    file_write(fio, eps, 0, 4);
 
     cout << "eps         mlmc_cost   std_cost    saving       N...\n";
     cout << "----------------------------------------------------------------\n";
-    plt::title("N / Level");
 
-    vector <double> std_cost(6);
-    vector <double> mlmc_cost(6);
+    vector <double> std_cost(5);
+    vector <double> mlmc_cost(5);
 
     double theta = 0.25;
 
-    for (int i = 0; i < 6; i++) {
-        bool flag = mlmc_eval_eps(2, eps[i], alpha, beta);
-        if (!flag) return 0;
+    for (int i = 0; i < 5; i++) {
+        mlmc_eval_eps(2, eps[i], f1);
 
-        int sz = 0;
+        sz = 0;
         for (; sz < Lmax; sz++) if (N[sz] <= 0) break;
         sz--;
-
-        plt::plot(vector_slice(level, 1, sz), vector_slice(N, 1, sz, 10), graphic[i]);
 
         double TotalCost = 0.0;
         for (int l = 0; l <= sz; l++) TotalCost += N[l] * Cost[l];
         mlmc_cost[i] = eps[i] * eps[i] * TotalCost;
         std_cost[i] = varP[sz] * Cost[sz] / (1.0 - theta);
+
+        file_write(fio, N, 1, sz, 10);
     }
 
-
-    plt::show();
-
-    plt::title("Cost / accuracy");
-    plt::plot(vector_slice(vector <double> (eps, eps + 6), 0, 5, 10), vector_slice(mlmc_cost, 0, 5, 10), "r^-");
-    plt::plot(vector_slice(vector <double> (eps, eps + 6), 0, 5, 10), vector_slice(std_cost, 0, 5, 10), "b^-");
-    plt::show();
+    file_write(fio, mlmc_cost, 0, 4, 10);
+    file_write(fio, std_cost, 0, 4, 10);
+    fio.close();
 
     return 0;
 }

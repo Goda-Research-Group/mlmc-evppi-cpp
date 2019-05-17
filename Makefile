@@ -5,7 +5,7 @@ CC=g++
 CFLAGS=-Wall
 
 $(PROGRAM):$(OBJS)
-	$(CC) $(CFLAGS) -o $(PROGRAM) $(OBJS) -lstdc++ -lpython2.7 -std=c++11
+	$(CC) $(CFLAGS) -o $(PROGRAM) $(OBJS)
 
 clean:
 	rm -rf $(PROGRAM) *.o
