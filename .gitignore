@@ -1,3 +1,4 @@
 mlmc
 *.o
 result.txt
+*.ipynb

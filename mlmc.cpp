@@ -1,7 +1,6 @@
 #include <iostream>
 #include <fstream>
 #include <vector>
-#include <chrono>
 #include <random>
 #include <math.h>
 #include <iomanip>
@@ -26,12 +25,10 @@ vector<double> Kurtosis(Lmax);
 
 double alpha, beta;
 
-// It constructs a trivial random generator engine from a time-based seed
-unsigned seed = chrono::system_clock::now().time_since_epoch().count();
-default_random_engine generator(seed);
-
-// Initializes the normal distribution
-normal_distribution<double> distribution(zero, 1.0);
+// random number generation by mersenne twister
+random_device rd;
+mt19937 generator(rd());
+normal_distribution<double> distribution(0.0, 1.0);
 
 double f1(double x, double y) {
     return x + y;
