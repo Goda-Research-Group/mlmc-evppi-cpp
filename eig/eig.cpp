@@ -3,6 +3,7 @@
 #include <random>
 #include <math.h>
 #include <assert.h>
+#include <time.h>
 using namespace std;
 
 const double pi = 3.14159265358979323846;
@@ -13,19 +14,6 @@ random_device rd;
 mt19937 generator(rd());
 normal_distribution<double> distribution(0.0, 1.0);
 
-const int Lmax = 20;
-double alpha, beta;
-
-vector <double> N(Lmax);
-vector <double> P(Lmax);
-vector <double> P2(Lmax);
-vector <double> aveP(Lmax);
-vector <double> varP(Lmax);
-vector <double> Z(Lmax);
-vector <double> Z2(Lmax);
-vector <double> aveZ(Lmax);
-vector <double> varZ(Lmax);
-
 struct Matrix {
     vector < vector <double> > val;
     Matrix(int n = 1, int m = 1) { val.clear(); val.resize(n, vector<double>(m)); }
@@ -34,7 +22,7 @@ struct Matrix {
     void resize(int n, int m, double x = 0) { val.resize(n); for (int i = 0; i < n; i++) val[i].resize(m, x); }
     int size() { return val.size(); }
     inline vector <double> &operator[](int i) { return val[i]; }
-    friend ostream &operator<<(ostream &s, Matrix M) {
+    friend ostream &operator<<(ostream &s, Matrix &M) {
         for (int i = 0; i < M.size(); i++) {
             for (int j = 0; j < M[0].size(); j++) s << M[i][j] << " ";
             s << "\n";
@@ -43,126 +31,80 @@ struct Matrix {
     }
 };
 
-Matrix operator * (Matrix A, Matrix B) {
-    assert(A[0].size() == B.size());
+Matrix mul(Matrix &A, Matrix &B) {
+    size_t sz = A[0].size();
+    assert(sz == B.size());
 
-    Matrix R(A.size(), B[0].size(), 0);
-    for (int i = 0; i < A.size(); i++)
-        for (int j = 0; j < B[0].size(); j++)
-            for (int k = 0; k < B.size(); k++)
+    size_t row = A.size();
+    size_t column = B[0].size();
+
+    Matrix R(row, column, 0.0);
+    for (size_t i = 0; i < row; i++)
+        for (size_t k = 0; k < sz; k++)
+            for (size_t j = 0; j < column; j++)
                 R[i][j] += A[i][k] * B[k][j];
 
     return R;
 }
 
-Matrix operator + (Matrix A, Matrix B) {
-    assert(A.size() == B.size());
-    assert(A[0].size() == B[0].size());
+Matrix add(Matrix &A, Matrix &B) {
+    size_t row = A.size();
+    size_t column = A[0].size();
+    assert(row == B.size());
+    assert(column == B[0].size());
 
-    Matrix R(A.size(), A[0].size());
-    for (int i = 0; i < A.size(); i++)
-        for (int j = 0; j < A[0].size(); j++)
+    Matrix R(row, column, 0);
+    for (size_t i = 0; i < row; i++)
+        for (size_t j = 0; j < column; j++)
             R[i][j] = A[i][j] + B[i][j];
 
     return R;
 }
 
-template<class T> vector<T> operator * (Matrix<T> A, vector<T> B) {
-    assert(A[0].size() == B.size());
+vector <double> mul(Matrix &A, vector <double> &v) {
+    size_t sz = A[0].size();
+    assert(sz == v.size());
 
-    vector <T> v(A.size(), 0);
-    for (int i = 0; i < A.size(); i++)
-        for (int k = 0; k < B.size(); k++)
-            v[i] += A[i][k] * B[k];
+    vector <double> r(A.size(), 0.0);
+    for (size_t i = 0, row = A.size(); i < row; i++)
+        for (size_t j = 0; j < sz; j++)
+            r[i] += A[i][j] * v[j];
 
-    return v;
+    return r;
 }
 
-template<class T> vector<T> operator + (vector<T> A, vector<T> B) {
-    assert(A.size() == B.size());
+vector <double> add(vector <double> &v1, vector <double> &v2) {
+    size_t sz = v1.size();
+    assert(sz == v2.size());
 
-    vector <T> v(A.size());
-    for (int i = 0; i < A.size(); i++)
-        v[i] = A[i] + B[i];
+    vector <double> r(sz);
+    for (size_t i = 0; i < sz; i++)
+        r[i] = v1[i] + v2[i];
 
-    return v;
+    return r;
 }
 
-template<class T> vector<T> operator - (vector<T> A, vector<T> B) {
-    assert(A.size() == B.size());
+vector <double> sub(vector <double> &v1, vector <double> &v2) {
+    size_t sz = v1.size();
+    assert(sz == v2.size());
 
-    vector <T> v(A.size());
-    for (int i = 0; i < A.size(); i++)
-        v[i] = A[i] - B[i];
+    vector <double> r(sz);
+    for (size_t i = 0; i < sz; i++)
+        r[i] = v1[i] - v2[i];
 
-    return v;
+    return r;
 }
 
-template<class T> T operator * (vector<T> A, vector<T> B) {
-    assert(A.size() == B.size());
-
-    T ret = 0;
-    for (int i = 0; i < A.size(); i++)
-        ret += A[i] * B[i];
-
-    return ret;
-}
-
-template<class T> Matrix<T> Cholesky(Matrix<T> A) {
-    Matrix<T> Q(A.size(), A.size());
-    for (int i = 0; i < A.size(); i++) {
-        for (int j = 0; j < i; j++) {
-            Q[i][j] = A[i][j];
-            for (int k = 0; k < j; k++) Q[i][j] -= Q[i][k] * Q[j][k];
-            Q[i][j] /= Q[j][j];
-        }
-        Q[i][i] = A[i][i];
-        for (int k = 0; k < i; k++) Q[i][i] -= Q[i][k] * Q[i][k];
-        Q[i][i] = sqrt(Q[i][i]);
-    }
-    return Q;
-}
-
-template<class T> Matrix<T> Transpose(Matrix<T> A) {
-    Matrix<T> B(A[0].size(), A.size());
-    for (int i = 0; i < A.size(); i++)
-        for (int j = 0; j < A[0].size(); j++)
-            B[j][i] = A[i][j];
-    return B;
-}
-
-template<class T> Matrix<T> Transpose(vector<T> A) {
-    Matrix<T> B(1, A.size());
-    for (int i = 0; i < A.size(); i++) B[0][i] = A[i];
-    return B;
-}
-
-template<class T> vector<T> rand_multinormal(vector <T> u, Matrix<T> Sigma) {
-    int sz = u.size();
-    assert(Sigma.size() == sz);
-    assert(Sigma[0].size() == sz);
-
-    Matrix<T> Q = Cholesky(Sigma);
-    vector <double> rand(sz);
-    vector <double> ret(sz);
-    for (int i = 0; i < sz; i++) {
-        rand[i] = distribution(generator);
-        for (int j = 0; j <= i; j++) ret[i] += Q[i][j] * rand[j];
-        ret[i] += u[i];
-    }
-
-    return ret;
-}
-
-template<class T> Matrix<T> getCoFactor(Matrix<T> A, int p, int q) {
+Matrix getCoFactor(Matrix &A, int p, int q) {
     // 正方行列のみ通す
-    int sz = A.size();
+    size_t sz = A.size();
     assert(sz == A[0].size());
+    assert(sz > 0);
 
-    Matrix<T> co_factor(sz-1, sz-1);
+    Matrix co_factor(sz-1, sz-1);
     int i = 0, j = 0;
-    for (int row = 0; row < sz; row++) {
-        for (int col = 0; col < sz; col++) {
+    for (size_t row = 0; row < sz; row++) {
+        for (size_t col = 0; col < sz; col++) {
             if (row != p && col != q) {
                 co_factor[i][j] = A[row][col];
                 j++;
@@ -177,16 +119,16 @@ template<class T> Matrix<T> getCoFactor(Matrix<T> A, int p, int q) {
     return co_factor;
 }
 
-double determinant(Matrix<double> A) {
+double determinant(Matrix &A) {
     // 正方行列のみ通す
-    int sz = A.size();
+    size_t sz = A.size();
     assert(sz == A[0].size());
 
     if (sz == 1) return A[0][0];
 
     double det = 0;
-    for (int i = 0; i < sz; i++) {
-        Matrix<double> co_factor = getCoFactor(A, 0, i);
+    for (size_t i = 0; i < sz; i++) {
+        Matrix co_factor = getCoFactor(A, 0, i);
         int sign = i % 2 == 0 ? 1 : -1;
         det += sign * A[0][i] * determinant(co_factor);
     }
@@ -194,15 +136,15 @@ double determinant(Matrix<double> A) {
     return det;
 }
 
-template<class T> Matrix<T> adjoint(Matrix<T> A) {
+Matrix adjoint(Matrix &A) {
     // 正方行列のみ通す
-    int sz = A.size();
+    size_t sz = A.size();
     assert(sz == A[0].size());
 
-    Matrix<T> adj(sz, sz);
-    for (int i = 0; i < sz; i++) {
-        for (int j = 0; j < sz; j++) {
-            Matrix<T> co_factor = getCoFactor(A, i, j);
+    Matrix adj(sz, sz);
+    for (size_t j = 0; j < sz; j++) {
+        for (size_t i = 0; i < sz; i++) {
+            Matrix co_factor = getCoFactor(A, i, j);
             int sign = (i + j) % 2 == 0 ? 1 : -1;
             adj[j][i] = sign * determinant(co_factor);
         }
@@ -211,146 +153,44 @@ template<class T> Matrix<T> adjoint(Matrix<T> A) {
     return adj;
 }
 
-template<class T> Matrix<T> Inverse(Matrix<T> A) {
+Matrix Inverse(Matrix &A) {
     // 正方行列のみ通す
-    int sz = A.size();
+    size_t sz = A.size();
     assert(sz == A[0].size());
 
-    Matrix<T> inv(sz, sz);
+    Matrix inv(sz, sz);
 
     // 正則行列のみ通す
     double det = determinant(A);
     assert(abs(det - eps) > 0);
 
-    Matrix<T> adj = adjoint(A);
+    Matrix adj = adjoint(A);
 
-    for (int i = 0; i < sz; i++)
-        for (int j = 0; j < sz; j++)
+    for (size_t i = 0; i < sz; i++)
+        for (size_t j = 0; j < sz; j++)
             inv[i][j] = adj[i][j] / det;
 
     return inv;
 }
 
-double pdf(vector <double> x, vector <double> u, Matrix <double> sigma) {
-    int sz = x.size();
-    assert(u.size() == sz);
-    assert(sigma.size() == sz);
-    assert(sigma[0].size() == sz);
+Matrix Transpose(Matrix &A) {
+    size_t row = A.size();
+    size_t column = A[0].size();
+    Matrix R(column, row);
+    for (size_t i = 0; i < row; i++)
+        for (size_t j = 0; j < column; j++)
+            R[j][i] = A[i][j];
 
-    // f(x) = exp(-1/2 * transpose(x - u) * Σ^-1 * (x - u)) / ((2π)^(n/2) * sqrt(|Σ|))
-    vector <double> tmp1 = Inverse(sigma) * (x - u);
-    double tmp2 = (x - u) * tmp1;
-    tmp2 = exp(- tmp2 / 2.0);
-    double tmp3 = pow(2.0 * pi, (double)sz / 2.0) * sqrt(determinant(sigma));
-    return tmp2 / tmp3;
+    return R;
 }
 
-Matrix <double> A(3, 2);
-Matrix <double> InvA(2, 3);
-vector <double> theta_u(2);
-Matrix <double> theta_sigma(2, 2);
-vector <double> epsilon_u(3, 0.0);
-Matrix <double> epsilon_sigma(3, 3, 0.0);
+Matrix Transpose(vector <double> &v) {
+    size_t sz = v.size();
+    Matrix R(1, sz);
+    for (size_t i = 0; i < sz; i++)
+        R[0][i] = v[i];
 
-double ImportanceSampling(vector <double> Y, vector <double> theta) {
-    vector <double> u_approximation = theta - Inverse(Transpose(A) * Inverse(epsilon_sigma) * A + Inverse(theta_sigma)) * Transpose(A) * Inverse(epsilon_sigma) * (Y - A * theta);
-    Matrix <double> sigma_approximation = Inverse(Transpose(A) * Inverse(epsilon_sigma) * A + Inverse(theta_sigma));
-
-    theta = rand_multinormal(u_approximation, sigma_approximation);
-    double p_y_given_theta = pdf(Y - A * theta, epsilon_u, epsilon_sigma);
-    double p_theta = pdf(theta, u_approximation, sigma_approximation);
-    double q = pdf(theta, u_approximation, sigma_approximation);
-
-    return p_y_given_theta * p_theta / q;
-}
-
-void eig(int l, double M) {
-    // θを分布に従って生成
-    vector <double> theta = rand_multinormal(theta_u, theta_sigma);
-
-    // A * θ
-    vector <double> Atheta = A * theta;
-
-    // 分布に従ってεを生成
-    vector <double> epsilon = rand_multinormal(epsilon_u, epsilon_sigma);
-
-    // A, θ, εからYを導出
-    vector <double> Y = Atheta + epsilon;
-
-    // log(p(Y|θ))は、εを生成し、それがεの分布からどのくらいの確率で生成されるかを求めれば良い
-    double log_p_y_theta = log(pdf(epsilon, epsilon_u, epsilon_sigma));
-
-    if (l == 0) {
-        double sum = 0;
-        for (int m = 0; m < M; m++) {
-            sum += ImportanceSampling(Y, theta);
-        }
-
-        double p = log_p_y_theta - log(sum / M);
-        P[l] += p;
-        P2[l] += p * p;
-        Z[l] += p;
-        Z2[l] += p * p;
-    } else {
-        double sum_a = 0, sum_b = 0;
-        for (int m = 0; m < M / 2; m++) {
-            sum_a += ImportanceSampling(Y, theta);
-        }
-        for (int m = M / 2; m < M; m++) {
-            sum_b += ImportanceSampling(Y, theta);
-        }
-
-        double sum = sum_a + sum_b;
-
-        double p = log_p_y_theta - log(sum / M);
-        P[l] += p;
-        P2[l] += p * p;
-
-        double z = (log(sum_a * 2 / M) + log(sum_b * 2 / M)) / 2 - log(sum / M);
-        Z[l] += z;
-        Z2[l] += z * z;
-    }
-}
-
-void calc(int l, double M) {
-    for (int n = 0; n < N[l]; n++) {
-        eig(l, M);
-    }
-
-    aveP[l] = abs(P[l] / N[l]);
-    varP[l] = P2[l] / N[l] - aveP[l] * aveP[l];
-
-    aveZ[l] = abs(Z[l] / N[l]);
-    varZ[l] = Z2[l] / N[l] - aveZ[l] * aveZ[l];
-
-    cout << log2(aveP[l]) << " " << log2(aveZ[l]) << " " << log2(varP[l]) << " " << log2(varZ[l]) << '\n';
-}
-
-void estimate_alpha_beta(int L, double outer_sample) {
-    fill(N.begin(), N.end(), outer_sample);
-    fill(P.begin(), P.end(), 0.0);
-    fill(P2.begin(), P2.end(), 0.0);
-    fill(Z.begin(), Z.end(), 0.0);
-    fill(Z2.begin(), Z2.end(), 0.0);
-
-    cout << "aveP    aveZ    varP    varZ\n";
-
-    double M = 2;
-    for (int l = 0; l <= L; l++) {
-        calc(l, M);
-        M *= 2;
-    }
-
-    // regressionする
-}
-
-template<class T> void printMatrix(Matrix<T> A) {
-    for (int i = 0; i < A.size(); i++) {
-        for (int j = 0; j < A[0].size(); j++) {
-            cout << A[i][j] << " ";
-        }
-        cout << "\n";
-    }
+    return R;
 }
 
 void MatrixTest() {
@@ -359,7 +199,7 @@ void MatrixTest() {
 
     for (int t = 0; t < 10; t++) {
         int n = 5;
-        Matrix<double> *m(n, n);
+        Matrix m(n, n);
         for (int i = 0; i < n; i++) {
             for (int j = 0; j < n; j++) {
                 m[i][j] = distribution(generator);
@@ -369,8 +209,8 @@ void MatrixTest() {
         double d = determinant(m);
         if (d == 0) continue;
 
-        Matrix<double> inv = Inverse(m);
-        Matrix<double> I = m * inv;
+        Matrix inv = Inverse(m);
+        Matrix I = mul(m, inv);
 
         for (int i = 0; i < n; i++) {
             for (int j = 0; j < n; j++) {
@@ -387,6 +227,183 @@ void MatrixTest() {
     cout << "----------------------------\n";
 }
 
+struct EIG {
+    Matrix A, TransA;
+
+    vector <double> theta_u;
+    Matrix theta_sigma;
+    Matrix InvThetaSigma;
+    double thetaPdfDenominator;
+
+    vector <double> epsilon_u;
+    Matrix epsilon_sigma;
+    Matrix InvEpsilonSigma;
+    double epsilonPdfDenominator;
+
+    Matrix LaplaceUApproximation;
+    Matrix LaplaceSigmaApproximation;
+
+    int maxLevel;
+    double init_M; // level 0 でのinner sample数
+
+    int rand_index;
+    vector <double> N, rand, P, P2, aveP, varP, Z, Z2, aveZ, varZ;
+
+    void init() {
+        A.resize(3, 2);
+        A[0][0] = 1.0;
+        A[0][1] = A[1][0] = 2.0;
+        A[1][1] = A[2][0] = 3.0;
+        A[2][1] = 4.0;
+
+        TransA = Transpose(A);
+
+        theta_u.resize(2, 0.0);
+        theta_u[0] = 1.0;
+
+        theta_sigma.resize(2, 2);
+        theta_sigma[0][0] = theta_sigma[1][1] = 2.0;
+        theta_sigma[0][1] = theta_sigma[1][0] = -1.0;
+
+        InvThetaSigma = Inverse(theta_sigma);
+        thetaPdfDenominator = 2.0 * pi * sqrt(determinant(theta_sigma));
+
+        epsilon_u.resize(3, 0.0);
+
+        epsilon_sigma.resize(3, 3, 0.0);
+        epsilon_sigma[0][0] = epsilon_sigma[1][1] = epsilon_sigma[2][2] = 0.1;
+        epsilon_sigma[0][1] = epsilon_sigma[1][0] = epsilon_sigma[2][1] = epsilon_sigma[1][2] = -0.05;
+
+        InvEpsilonSigma = Inverse(epsilon_sigma);
+        epsilonPdfDenominator = pow(2.0 * pi, 1.5) * sqrt(determinant(epsilon_sigma));
+
+        Matrix tmp1 = mul(TransA, InvEpsilonSigma);
+        Matrix tmp2 = mul(tmp1, A);
+        Matrix tmp3 = add(tmp2, InvThetaSigma);
+        LaplaceSigmaApproximation = Inverse(tmp3);
+        LaplaceUApproximation = mul(LaplaceSigmaApproximation, tmp1);
+
+        maxLevel = 20;
+        init_M = 2.0;
+
+        N.resize(maxLevel, 0.0);
+        P.resize(maxLevel, 0.0);
+        P2.resize(maxLevel, 0.0);
+        aveP.resize(maxLevel, 0.0);
+        varP.resize(maxLevel, 0.0);
+        Z.resize(maxLevel, 0.0);
+        Z2.resize(maxLevel, 0.0);
+        aveZ.resize(maxLevel, 0.0);
+        varZ.resize(maxLevel, 0.0);
+    }
+
+    void rand_init(int L, double outer) {
+        rand_index = 0;
+
+        int count = (4 + init_M * pow(2, L+2)) * outer;
+        rand.resize(count);
+
+        int c = 0;
+        while (c < count) {
+            rand[c] = distribution(generator);
+            rand[c+1] = distribution(generator);
+            rand[c+2] = distribution(generator);
+            rand[c+3] = distribution(generator);
+            c += 4;
+        }
+    }
+
+    double thetaPdf(vector <double> &x) {
+        size_t sz = theta_u.size();
+        assert(x.size() == sz);
+
+        vector <double> tmp1 = sub(x, theta_u);
+        Matrix tmp2 = Transpose(tmp1);
+        Matrix tmp3 = mul(tmp2, InvThetaSigma);
+        vector <double> tmp4 = mul(tmp3, tmp1);
+
+        double tmp5 = exp(- tmp4[0] / 2.0);
+
+        return tmp5 / thetaPdfDenominator;
+    }
+
+    double epsilonPdf(vector <double> &x) {
+        size_t sz = epsilon_u.size();
+        assert(x.size() == sz);
+
+        vector <double> tmp1 = sub(x, epsilon_u);
+        Matrix tmp2 = Transpose(tmp1);
+        Matrix tmp3 = mul(tmp2, InvEpsilonSigma);
+        vector <double> tmp4 = mul(tmp3, tmp1);
+
+        double tmp5 = exp(- tmp4[0] / 2.0);
+
+        return tmp5 / epsilonPdfDenominator;
+    }
+};
+
+Matrix Cholesky(Matrix &A) {
+    size_t sz = A.size();
+    Matrix Q(sz, sz);
+    for (size_t i = 0; i < sz; i++) {
+        for (size_t j = 0; j < i; j++) {
+            Q[i][j] = A[i][j];
+            for (size_t k = 0; k < j; k++)
+                Q[i][j] -= Q[i][k] * Q[j][k];
+
+            Q[i][j] /= Q[j][j];
+        }
+
+        Q[i][i] = A[i][i];
+        for (size_t k = 0; k < i; k++)
+            Q[i][i] -= Q[i][k] * Q[i][k];
+
+        Q[i][i] = sqrt(Q[i][i]);
+    }
+
+    return Q;
+}
+
+vector <double> rand_multinormal(EIG &eig, vector <double> &u, Matrix &Sigma) {
+    size_t sz = u.size();
+    assert(Sigma.size() == sz);
+    assert(Sigma[0].size() == sz);
+
+    Matrix Q = Cholesky(Sigma);
+    vector <double> rand(sz);
+    vector <double> ret(sz);
+    for (size_t i = 0; i < sz; i++) {
+        // rand[i] = eig.rand[eig.rand_index++];
+        rand[i] = distribution(generator);
+        for (size_t j = 0; j <= i; j++)
+            ret[i] += Q[i][j] * rand[j];
+
+        ret[i] += u[i];
+    }
+
+    return ret;
+}
+
+double pdf(vector <double> &x, vector <double> &u, Matrix &sigma) {
+    size_t sz = x.size();
+    assert(u.size() == sz);
+    assert(sigma.size() == sz);
+    assert(sigma[0].size() == sz);
+
+    // f(x) = exp(-1/2 * transpose(x - u) * Σ^-1 * (x - u)) / ((2π)^(n/2) * sqrt(|Σ|))
+    vector <double> tmp1 = sub(x, u);
+    Matrix tmp2 = Transpose(tmp1);
+    Matrix tmp3 = Inverse(sigma);
+    Matrix tmp4 = mul(tmp2, tmp3);
+    vector <double> tmp5 = mul(tmp4, tmp1);
+
+    double tmp6 = exp(- tmp5[0] / 2.0);
+
+    double tmp7 = pow(2.0 * pi, (double)sz / 2.0) * sqrt(determinant(sigma));
+
+    return tmp6 / tmp7;
+}
+
 void pdfTest() {
     cout << "----------------------------\n";
     cout << "Test PDF Starts!!\n";
@@ -395,7 +412,7 @@ void pdfTest() {
     vector <double> epsilon_u(3, 0.0);
 
     // εの分散共分散行列
-    Matrix <double> epsilon_sigma(3, 3, 0.0);
+    Matrix epsilon_sigma(3, 3, 0.0);
     epsilon_sigma[0][0] = epsilon_sigma[1][1] = epsilon_sigma[2][2] = 0.1;
     epsilon_sigma[0][1] = epsilon_sigma[1][0] = epsilon_sigma[2][1] = epsilon_sigma[1][2] = -0.05;
 
@@ -408,32 +425,104 @@ void pdfTest() {
     cout << "----------------------------\n";
 }
 
-int main() {
+double ImportanceSampling(EIG &eig, vector <double> &Y, vector <double> &theta) {
+    vector <double> tmp1 = mul(eig.A, theta);
+    vector <double> tmp2 = sub(Y, tmp1);
+    vector <double> tmp3 = mul(eig.LaplaceUApproximation, tmp2);
+    vector <double> u_approximation = sub(theta, tmp3);
+    Matrix sigma_approximation = eig.LaplaceSigmaApproximation;
 
+    vector <double> new_theta = rand_multinormal(eig, u_approximation, sigma_approximation);
+    tmp1 = mul(eig.A, new_theta);
+    tmp2 = sub(Y, tmp1);
+    double p_y_given_theta = eig.epsilonPdf(tmp2);
+    double p_theta = eig.thetaPdf(theta);
+    double q = pdf(new_theta, u_approximation, sigma_approximation);
+
+    // cout << p_y_given_theta << " " << p_theta << " " << q << '\n';
+    return p_y_given_theta * p_theta / q;
+}
+
+void eig_calc(EIG &eig, int l, double M) {
+    vector <double> theta = rand_multinormal(eig, eig.theta_u, eig.theta_sigma);
+    vector <double> Atheta = mul(eig.A, theta);
+    vector <double> epsilon = rand_multinormal(eig, eig.epsilon_u, eig.epsilon_sigma);
+    vector <double> Y = add(Atheta, epsilon);
+
+    // log(p(Y|θ))は、εを生成し、それがεの分布からどのくらいの確率で生成されるかを求めれば良い
+    double log_p_y_theta = log(pdf(epsilon, eig.epsilon_u, eig.epsilon_sigma));
+
+    if (l == 0) {
+        double sum = 0;
+        for (int m = 0; m < M; m++) {
+            sum += ImportanceSampling(eig, Y, theta);
+        }
+
+        double p = log_p_y_theta - log(sum / M);
+        eig.P[l] += p;
+        eig.P2[l] += p * p;
+        eig.Z[l] += p;
+        eig.Z2[l] += p * p;
+    } else {
+        double sum_a = 0, sum_b = 0;
+        for (int m = 0; m < M / 2; m++) {
+            sum_a += ImportanceSampling(eig, Y, theta);
+            sum_b += ImportanceSampling(eig, Y, theta);
+        }
+
+        double sum = sum_a + sum_b;
+
+        double p = log_p_y_theta - log(sum / M);
+        eig.P[l] += p;
+        eig.P2[l] += p * p;
+
+        double z = (log(sum_a * 2.0 / M) + log(sum_b * 2.0 / M)) / 2.0 - log(sum / M);
+        eig.Z[l] += z;
+        eig.Z2[l] += z * z;
+    }
+}
+
+void calc(EIG &eig, int l, double M) {
+    for (int n = 0; n < eig.N[l]; n++) {
+        eig_calc(eig, l, M);
+    }
+
+    eig.aveP[l] = abs(eig.P[l] / eig.N[l]);
+    eig.varP[l] = eig.P2[l] / eig.N[l] - eig.aveP[l] * eig.aveP[l];
+
+    eig.aveZ[l] = abs(eig.Z[l] / eig.N[l]);
+    eig.varZ[l] = eig.Z2[l] / eig.N[l] - eig.aveZ[l] * eig.aveZ[l];
+
+    cout << log2(eig.aveP[l]) << " " << log2(eig.aveZ[l]) << " " << log2(eig.varP[l]) << " " << log2(eig.varZ[l]) << '\n';
+}
+
+void estimate_alpha_beta(EIG &eig, int L, double n) {
+    fill(eig.N.begin(), eig.N.end(), n);
+
+    cout << "aveP    aveZ    varP    varZ\n";
+
+    double M = eig.init_M;
+    for (int l = 0; l <= L; l++) {
+        calc(eig, l, M);
+        M *= 2;
+    }
+}
+
+int main() {
     MatrixTest();
     pdfTest();
 
-    int L = 5;
-    double outer_sample = 2000;
+    clock_t start = clock();
 
-    theta_u[0] = 1;
-    theta_u[1] = 0;
+    EIG eig;
+    eig.init();
 
-    theta_sigma[0][0] = theta_sigma[1][1] = 2;
-    theta_sigma[0][1] = theta_sigma[1][0] = -1;
+    int L = 10;
+    double outer = 2000.0;
 
-    A[0][0] = 1;
-    A[0][1] = A[1][0] = 2;
-    A[1][1] = A[2][0] = 3;
-    A[2][1] = 4;
+    // eig.rand_init(L, outer);
+    estimate_alpha_beta(eig, L, outer);
 
-    InvA[0][0] = InvA[1][0] = InvA[1][1] = 1;
-    InvA[0][1] = -6; InvA[0][2] = 4; InvA[1][2] = -1;
-
-    epsilon_sigma[0][0] = epsilon_sigma[1][1] = epsilon_sigma[2][2] = 0.1;
-    epsilon_sigma[0][1] = epsilon_sigma[1][0] = epsilon_sigma[2][1] = epsilon_sigma[1][2] = -0.05;
-
-    // estimate_alpha_beta(L, outer_sample);
-
-    return 0;
+    clock_t end = clock();
+    cout << "time = " << (double)(end - start) / CLOCKS_PER_SEC << " (sec)\n";
 }
