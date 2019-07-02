@@ -3,7 +3,9 @@
 #include <random>
 #include <math.h>
 #include <assert.h>
-#include <time.h>
+#include <chrono>
+#include <thread>
+#include <mutex>
 using namespace std;
 typedef vector <double> vec;
 
@@ -270,6 +272,8 @@ struct Eig {
     Matrix laplace_cholesky;
 
     int max_level;
+    int num_thread;
+    mutex mtx;
 
     // level 0 でのinner sample数
     double init_M;
@@ -314,6 +318,7 @@ struct Eig {
         laplace_cholesky = Cholesky(laplace_sigma_approximation);
 
         max_level = 20;
+        num_thread = 100;
         init_M = 2.0;
 
         N.resize(max_level, 0.0);
@@ -483,10 +488,13 @@ void eig_calc(Eig &eig, const int l, const double M) {
         }
 
         double p = log_p_y_theta - log(sum / M);
+
+        eig.mtx.lock();
         eig.P[l] += p;
         eig.P2[l] += p * p;
         eig.Z[l] += p;
         eig.Z2[l] += p * p;
+        eig.mtx.unlock();
     } else {
         double sum_a = 0, sum_b = 0;
         for (int m = 0; m < M / 2; m++) {
@@ -497,27 +505,23 @@ void eig_calc(Eig &eig, const int l, const double M) {
         double sum = sum_a + sum_b;
 
         double p = log_p_y_theta - log(sum / M);
+        double z = (log(sum_a * 2.0 / M) + log(sum_b * 2.0 / M)) / 2.0 - log(sum / M);
+
+        eig.mtx.lock();
         eig.P[l] += p;
         eig.P2[l] += p * p;
-
-        double z = (log(sum_a * 2.0 / M) + log(sum_b * 2.0 / M)) / 2.0 - log(sum / M);
         eig.Z[l] += z;
         eig.Z2[l] += z * z;
+        eig.mtx.unlock();
     }
 }
 
 void calc(Eig &eig, const int l, const double M) {
-    for (int n = 0; n < eig.N[l]; n++) {
-        eig_calc(eig, l, M);
+    for (int n = 0; n < eig.N[l] / eig.num_thread; n++) {
+        vector <thread> th(eig.num_thread);
+        for (int j = 0; j < eig.num_thread; j++) th[j] = thread(eig_calc, ref(eig), l, M);
+        for (int j = 0; j < eig.num_thread; j++) th[j].join();
     }
-
-    eig.aveP[l] = abs(eig.P[l] / eig.N[l]);
-    eig.varP[l] = eig.P2[l] / eig.N[l] - eig.aveP[l] * eig.aveP[l];
-
-    eig.aveZ[l] = abs(eig.Z[l] / eig.N[l]);
-    eig.varZ[l] = eig.Z2[l] / eig.N[l] - eig.aveZ[l] * eig.aveZ[l];
-
-    cout << log2(eig.aveP[l]) << " " << log2(eig.aveZ[l]) << " " << log2(eig.varP[l]) << " " << log2(eig.varZ[l]) << '\n';
 }
 
 void estimate_alpha_beta(Eig &eig, const int L, const double n) {
@@ -525,10 +529,22 @@ void estimate_alpha_beta(Eig &eig, const int L, const double n) {
 
     cout << "aveP    aveZ    varP    varZ\n";
 
-    double M = eig.init_M;
+    double M = eig.init_M * pow(2, L);
+    vector <thread> th(L + 1);
+    for (int l = L; l >= 0; l--, M /= 2) {
+        th[l] = thread(calc, ref(eig), l, M);
+    }
+
     for (int l = 0; l <= L; l++) {
-        calc(eig, l, M);
-        M *= 2;
+        th[l].join();
+
+        eig.aveP[l] = abs(eig.P[l] / eig.N[l]);
+        eig.varP[l] = eig.P2[l] / eig.N[l] - eig.aveP[l] * eig.aveP[l];
+
+        eig.aveZ[l] = abs(eig.Z[l] / eig.N[l]);
+        eig.varZ[l] = eig.Z2[l] / eig.N[l] - eig.aveZ[l] * eig.aveZ[l];
+
+        cout << log2(eig.aveP[l]) << " " << log2(eig.aveZ[l]) << " " << log2(eig.varP[l]) << " " << log2(eig.varZ[l]) << '\n';
     }
 }
 
@@ -536,7 +552,7 @@ int main() {
     MatrixTest();
     pdfTest();
 
-    clock_t start = clock();
+    auto start = chrono::high_resolution_clock::now();
 
     Eig eig;
     eig.init();
@@ -546,6 +562,7 @@ int main() {
 
     estimate_alpha_beta(eig, L, outer);
 
-    clock_t end = clock();
-    cout << "time = " << (double)(end - start) / CLOCKS_PER_SEC << " (sec)\n";
+    auto end = chrono::high_resolution_clock::now();
+    auto msec = chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+    cout << msec / 1000.0 << " (sec)\n";
 }
