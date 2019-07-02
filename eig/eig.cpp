@@ -5,6 +5,7 @@
 #include <assert.h>
 #include <time.h>
 using namespace std;
+typedef vector <double> vec;
 
 const double pi = 3.14159265358979323846;
 const double eps = 1e-8;
@@ -15,13 +16,13 @@ mt19937 generator(rd());
 normal_distribution<double> distribution(0.0, 1.0);
 
 struct Matrix {
-    vector < vector <double> > val;
-    Matrix(int n = 1, int m = 1) { val.clear(); val.resize(n, vector<double>(m)); }
-    Matrix(int n, int m, double x) { val.clear(); val.resize(n, vector<double>(m, x)); }
-    void init(int n, int m, double x = 0) { val.clear(); val.resize(n, vector<double>(m, x)); }
+    vector < vec > val;
+    Matrix(int n = 1, int m = 1) { val.clear(); val.resize(n, vec(m)); }
+    Matrix(int n, int m, double x) { val.clear(); val.resize(n, vec(m, x)); }
+    void init(int n, int m, double x = 0) { val.clear(); val.resize(n, vec(m, x)); }
     void resize(int n, int m, double x = 0) { val.resize(n); for (int i = 0; i < n; i++) val[i].resize(m, x); }
     int size() { return val.size(); }
-    inline vector <double> &operator[](int i) { return val[i]; }
+    inline vec &operator[](int i) { return val[i]; }
     friend ostream &operator<<(ostream &s, Matrix &M) {
         for (int i = 0; i < M.size(); i++) {
             for (int j = 0; j < M[0].size(); j++) s << M[i][j] << " ";
@@ -61,11 +62,11 @@ Matrix add(Matrix &A, Matrix &B) {
     return R;
 }
 
-vector <double> mul(Matrix &A, vector <double> &v) {
+vec mul(Matrix &A, const vec &v) {
     size_t sz = A[0].size();
     assert(sz == v.size());
 
-    vector <double> r(A.size(), 0.0);
+    vec r(A.size(), 0.0);
     for (size_t i = 0, row = A.size(); i < row; i++)
         for (size_t j = 0; j < sz; j++)
             r[i] += A[i][j] * v[j];
@@ -73,29 +74,29 @@ vector <double> mul(Matrix &A, vector <double> &v) {
     return r;
 }
 
-vector <double> add(vector <double> &v1, vector <double> &v2) {
+vec add(const vec &v1, const vec &v2) {
     size_t sz = v1.size();
     assert(sz == v2.size());
 
-    vector <double> r(sz);
+    vec r(sz);
     for (size_t i = 0; i < sz; i++)
         r[i] = v1[i] + v2[i];
 
     return r;
 }
 
-vector <double> sub(vector <double> &v1, vector <double> &v2) {
+vec sub(const vec &v1, const vec &v2) {
     size_t sz = v1.size();
     assert(sz == v2.size());
 
-    vector <double> r(sz);
+    vec r(sz);
     for (size_t i = 0; i < sz; i++)
         r[i] = v1[i] - v2[i];
 
     return r;
 }
 
-Matrix getCoFactor(Matrix &A, int p, int q) {
+Matrix getCoFactor(Matrix &A, const int p, const int q) {
     // 正方行列のみ通す
     size_t sz = A.size();
     assert(sz == A[0].size());
@@ -184,13 +185,35 @@ Matrix Transpose(Matrix &A) {
     return R;
 }
 
-Matrix Transpose(vector <double> &v) {
+Matrix Transpose(const vec &v) {
     size_t sz = v.size();
     Matrix R(1, sz);
     for (size_t i = 0; i < sz; i++)
         R[0][i] = v[i];
 
     return R;
+}
+
+Matrix Cholesky(Matrix &A) {
+    size_t sz = A.size();
+    Matrix Q(sz, sz);
+    for (size_t i = 0; i < sz; i++) {
+        for (size_t j = 0; j < i; j++) {
+            Q[i][j] = A[i][j];
+            for (size_t k = 0; k < j; k++)
+                Q[i][j] -= Q[i][k] * Q[j][k];
+
+            Q[i][j] /= Q[j][j];
+        }
+
+        Q[i][i] = A[i][i];
+        for (size_t k = 0; k < i; k++)
+            Q[i][i] -= Q[i][k] * Q[i][k];
+
+        Q[i][i] = sqrt(Q[i][i]);
+    }
+
+    return Q;
 }
 
 void MatrixTest() {
@@ -227,27 +250,31 @@ void MatrixTest() {
     cout << "----------------------------\n";
 }
 
-struct EIG {
-    Matrix A, TransA;
+struct Eig {
+    Matrix A, trans_A;
 
-    vector <double> theta_u;
+    vec theta_u;
     Matrix theta_sigma;
-    Matrix InvThetaSigma;
-    double thetaPdfDenominator;
+    Matrix inv_theta_sigma;
+    Matrix theta_cholesky;
+    double theta_pdf_denominator;
 
-    vector <double> epsilon_u;
+    vec epsilon_u;
     Matrix epsilon_sigma;
-    Matrix InvEpsilonSigma;
-    double epsilonPdfDenominator;
+    Matrix inv_epsilon_sigma;
+    Matrix epsilon_cholesky;
+    double epsilon_pdf_denominator;
 
-    Matrix LaplaceUApproximation;
-    Matrix LaplaceSigmaApproximation;
+    Matrix laplace_u_approximation;
+    Matrix laplace_sigma_approximation;
+    Matrix laplace_cholesky;
 
-    int maxLevel;
-    double init_M; // level 0 でのinner sample数
+    int max_level;
 
-    int rand_index;
-    vector <double> N, rand, P, P2, aveP, varP, Z, Z2, aveZ, varZ;
+    // level 0 でのinner sample数
+    double init_M;
+
+    vec N, P, P2, aveP, varP, Z, Z2, aveZ, varZ;
 
     void init() {
         A.resize(3, 2);
@@ -256,7 +283,7 @@ struct EIG {
         A[1][1] = A[2][0] = 3.0;
         A[2][1] = 4.0;
 
-        TransA = Transpose(A);
+        trans_A = Transpose(A);
 
         theta_u.resize(2, 0.0);
         theta_u[0] = 1.0;
@@ -264,116 +291,116 @@ struct EIG {
         theta_sigma.resize(2, 2);
         theta_sigma[0][0] = theta_sigma[1][1] = 2.0;
         theta_sigma[0][1] = theta_sigma[1][0] = -1.0;
+        theta_cholesky = Cholesky(theta_sigma);
 
-        InvThetaSigma = Inverse(theta_sigma);
-        thetaPdfDenominator = 2.0 * pi * sqrt(determinant(theta_sigma));
+        inv_theta_sigma = Inverse(theta_sigma);
+        theta_pdf_denominator = 2.0 * pi * sqrt(determinant(theta_sigma));
 
         epsilon_u.resize(3, 0.0);
 
         epsilon_sigma.resize(3, 3, 0.0);
         epsilon_sigma[0][0] = epsilon_sigma[1][1] = epsilon_sigma[2][2] = 0.1;
         epsilon_sigma[0][1] = epsilon_sigma[1][0] = epsilon_sigma[2][1] = epsilon_sigma[1][2] = -0.05;
+        epsilon_cholesky = Cholesky(epsilon_sigma);
 
-        InvEpsilonSigma = Inverse(epsilon_sigma);
-        epsilonPdfDenominator = pow(2.0 * pi, 1.5) * sqrt(determinant(epsilon_sigma));
+        inv_epsilon_sigma = Inverse(epsilon_sigma);
+        epsilon_pdf_denominator = pow(2.0 * pi, 1.5) * sqrt(determinant(epsilon_sigma));
 
-        Matrix tmp1 = mul(TransA, InvEpsilonSigma);
+        Matrix tmp1 = mul(trans_A, inv_epsilon_sigma);
         Matrix tmp2 = mul(tmp1, A);
-        Matrix tmp3 = add(tmp2, InvThetaSigma);
-        LaplaceSigmaApproximation = Inverse(tmp3);
-        LaplaceUApproximation = mul(LaplaceSigmaApproximation, tmp1);
+        Matrix tmp3 = add(tmp2, inv_theta_sigma);
+        laplace_sigma_approximation = Inverse(tmp3);
+        laplace_u_approximation = mul(laplace_sigma_approximation, tmp1);
+        laplace_cholesky = Cholesky(laplace_sigma_approximation);
 
-        maxLevel = 20;
+        max_level = 20;
         init_M = 2.0;
 
-        N.resize(maxLevel, 0.0);
-        P.resize(maxLevel, 0.0);
-        P2.resize(maxLevel, 0.0);
-        aveP.resize(maxLevel, 0.0);
-        varP.resize(maxLevel, 0.0);
-        Z.resize(maxLevel, 0.0);
-        Z2.resize(maxLevel, 0.0);
-        aveZ.resize(maxLevel, 0.0);
-        varZ.resize(maxLevel, 0.0);
+        N.resize(max_level, 0.0);
+        P.resize(max_level, 0.0);
+        P2.resize(max_level, 0.0);
+        aveP.resize(max_level, 0.0);
+        varP.resize(max_level, 0.0);
+        Z.resize(max_level, 0.0);
+        Z2.resize(max_level, 0.0);
+        aveZ.resize(max_level, 0.0);
+        varZ.resize(max_level, 0.0);
     }
 
-    void rand_init(int L, double outer) {
-        rand_index = 0;
-
-        int count = (4 + init_M * pow(2, L+2)) * outer;
-        rand.resize(count);
-
-        int c = 0;
-        while (c < count) {
-            rand[c] = distribution(generator);
-            rand[c+1] = distribution(generator);
-            rand[c+2] = distribution(generator);
-            rand[c+3] = distribution(generator);
-            c += 4;
-        }
-    }
-
-    double thetaPdf(vector <double> &x) {
+    double theta_pdf(const vec &x) {
         size_t sz = theta_u.size();
         assert(x.size() == sz);
 
-        vector <double> tmp1 = sub(x, theta_u);
+        vec tmp1 = sub(x, theta_u);
         Matrix tmp2 = Transpose(tmp1);
-        Matrix tmp3 = mul(tmp2, InvThetaSigma);
-        vector <double> tmp4 = mul(tmp3, tmp1);
+        Matrix tmp3 = mul(tmp2, inv_theta_sigma);
+        vec tmp4 = mul(tmp3, tmp1);
 
         double tmp5 = exp(- tmp4[0] / 2.0);
 
-        return tmp5 / thetaPdfDenominator;
+        return tmp5 / theta_pdf_denominator;
     }
 
-    double epsilonPdf(vector <double> &x) {
+    double epsilon_pdf(const vec &x) {
         size_t sz = epsilon_u.size();
         assert(x.size() == sz);
 
-        vector <double> tmp1 = sub(x, epsilon_u);
+        vec tmp1 = sub(x, epsilon_u);
         Matrix tmp2 = Transpose(tmp1);
-        Matrix tmp3 = mul(tmp2, InvEpsilonSigma);
-        vector <double> tmp4 = mul(tmp3, tmp1);
+        Matrix tmp3 = mul(tmp2, inv_epsilon_sigma);
+        vec tmp4 = mul(tmp3, tmp1);
 
         double tmp5 = exp(- tmp4[0] / 2.0);
 
-        return tmp5 / epsilonPdfDenominator;
+        return tmp5 / epsilon_pdf_denominator;
+    }
+
+    vec rand_theta() {
+        vec rand(2);
+        vec ret(2);
+        for (int i = 0; i < 2; i++) {
+            rand[i] = distribution(generator);
+            for (int j = 0; j <= i; j++)
+                ret[i] += theta_cholesky[i][j] * rand[j];
+            ret[i] += theta_u[i];
+        }
+        return ret;
+    }
+
+    vec rand_epsilon() {
+        vec rand(3);
+        vec ret(3);
+        for (int i = 0; i < 3; i++) {
+            rand[i] = distribution(generator);
+            for (int j = 0; j <= i; j++)
+                ret[i] += epsilon_cholesky[i][j] * rand[j];
+            ret[i] += epsilon_u[i];
+        }
+        return ret;
+    }
+
+    vec rand_laplace(const vec &u) {
+        vec rand(2);
+        vec ret(2);
+        for (int i = 0; i < 2; i++) {
+            rand[i] = distribution(generator);
+            for (int j = 0; j <= i; j++)
+                ret[i] += laplace_cholesky[i][j] * rand[j];
+            ret[i] += u[i];
+        }
+        return ret;
     }
 };
 
-Matrix Cholesky(Matrix &A) {
-    size_t sz = A.size();
-    Matrix Q(sz, sz);
-    for (size_t i = 0; i < sz; i++) {
-        for (size_t j = 0; j < i; j++) {
-            Q[i][j] = A[i][j];
-            for (size_t k = 0; k < j; k++)
-                Q[i][j] -= Q[i][k] * Q[j][k];
-
-            Q[i][j] /= Q[j][j];
-        }
-
-        Q[i][i] = A[i][i];
-        for (size_t k = 0; k < i; k++)
-            Q[i][i] -= Q[i][k] * Q[i][k];
-
-        Q[i][i] = sqrt(Q[i][i]);
-    }
-
-    return Q;
-}
-
-vector <double> rand_multinormal(EIG &eig, vector <double> &u, Matrix &Sigma) {
+vec rand_multinormal(Eig &eig, const vec &u, Matrix &sigma) {
     size_t sz = u.size();
-    assert(Sigma.size() == sz);
-    assert(Sigma[0].size() == sz);
+    assert(sigma.size() == sz);
+    assert(sigma[0].size() == sz);
 
-    Matrix Q = Cholesky(Sigma);
-    vector <double> rand(sz);
-    vector <double> ret(sz);
+    Matrix Q = Cholesky(sigma);
+    vec rand(sz);
+    vec ret(sz);
     for (size_t i = 0; i < sz; i++) {
-        // rand[i] = eig.rand[eig.rand_index++];
         rand[i] = distribution(generator);
         for (size_t j = 0; j <= i; j++)
             ret[i] += Q[i][j] * rand[j];
@@ -384,18 +411,18 @@ vector <double> rand_multinormal(EIG &eig, vector <double> &u, Matrix &Sigma) {
     return ret;
 }
 
-double pdf(vector <double> &x, vector <double> &u, Matrix &sigma) {
+double pdf(const vec &x, const vec &u, Matrix &sigma) {
     size_t sz = x.size();
     assert(u.size() == sz);
     assert(sigma.size() == sz);
     assert(sigma[0].size() == sz);
 
     // f(x) = exp(-1/2 * transpose(x - u) * Σ^-1 * (x - u)) / ((2π)^(n/2) * sqrt(|Σ|))
-    vector <double> tmp1 = sub(x, u);
+    vec tmp1 = sub(x, u);
     Matrix tmp2 = Transpose(tmp1);
     Matrix tmp3 = Inverse(sigma);
     Matrix tmp4 = mul(tmp2, tmp3);
-    vector <double> tmp5 = mul(tmp4, tmp1);
+    vec tmp5 = mul(tmp4, tmp1);
 
     double tmp6 = exp(- tmp5[0] / 2.0);
 
@@ -409,14 +436,14 @@ void pdfTest() {
     cout << "Test PDF Starts!!\n";
 
     // εの平均
-    vector <double> epsilon_u(3, 0.0);
+    vec epsilon_u(3, 0.0);
 
     // εの分散共分散行列
     Matrix epsilon_sigma(3, 3, 0.0);
     epsilon_sigma[0][0] = epsilon_sigma[1][1] = epsilon_sigma[2][2] = 0.1;
     epsilon_sigma[0][1] = epsilon_sigma[1][0] = epsilon_sigma[2][1] = epsilon_sigma[1][2] = -0.05;
 
-    vector <double> v(3, 0);
+    vec v(3, 0);
     double p = pdf(v, epsilon_u, epsilon_sigma);
 
     assert(abs(p - 2.839521721752) < eps);
@@ -425,29 +452,26 @@ void pdfTest() {
     cout << "----------------------------\n";
 }
 
-double ImportanceSampling(EIG &eig, vector <double> &Y, vector <double> &theta) {
-    vector <double> tmp1 = mul(eig.A, theta);
-    vector <double> tmp2 = sub(Y, tmp1);
-    vector <double> tmp3 = mul(eig.LaplaceUApproximation, tmp2);
-    vector <double> u_approximation = sub(theta, tmp3);
-    Matrix sigma_approximation = eig.LaplaceSigmaApproximation;
+double importance_sampling(Eig &eig, const vec &Y, const vec &u_approximation) {
+    vec new_theta = eig.rand_laplace(u_approximation);
+    vec tmp = mul(eig.A, new_theta);
+    tmp = sub(Y, tmp);
+    double p_y_given_theta = eig.epsilon_pdf(tmp);
+    double q = pdf(new_theta, u_approximation, eig.laplace_sigma_approximation);
 
-    vector <double> new_theta = rand_multinormal(eig, u_approximation, sigma_approximation);
-    tmp1 = mul(eig.A, new_theta);
-    tmp2 = sub(Y, tmp1);
-    double p_y_given_theta = eig.epsilonPdf(tmp2);
-    double p_theta = eig.thetaPdf(theta);
-    double q = pdf(new_theta, u_approximation, sigma_approximation);
-
-    // cout << p_y_given_theta << " " << p_theta << " " << q << '\n';
-    return p_y_given_theta * p_theta / q;
+    return p_y_given_theta / q;
 }
 
-void eig_calc(EIG &eig, int l, double M) {
-    vector <double> theta = rand_multinormal(eig, eig.theta_u, eig.theta_sigma);
-    vector <double> Atheta = mul(eig.A, theta);
-    vector <double> epsilon = rand_multinormal(eig, eig.epsilon_u, eig.epsilon_sigma);
-    vector <double> Y = add(Atheta, epsilon);
+void eig_calc(Eig &eig, const int l, const double M) {
+    vec theta = eig.rand_theta();
+    double p_theta = eig.theta_pdf(theta);
+
+    vec A_theta = mul(eig.A, theta);
+    vec epsilon = eig.rand_epsilon();
+    vec Y = add(A_theta, epsilon);
+
+    vec tmp = mul(eig.laplace_u_approximation, epsilon);
+    vec u_approximation = add(theta, tmp);
 
     // log(p(Y|θ))は、εを生成し、それがεの分布からどのくらいの確率で生成されるかを求めれば良い
     double log_p_y_theta = log(pdf(epsilon, eig.epsilon_u, eig.epsilon_sigma));
@@ -455,7 +479,7 @@ void eig_calc(EIG &eig, int l, double M) {
     if (l == 0) {
         double sum = 0;
         for (int m = 0; m < M; m++) {
-            sum += ImportanceSampling(eig, Y, theta);
+            sum += importance_sampling(eig, Y, u_approximation) * p_theta;
         }
 
         double p = log_p_y_theta - log(sum / M);
@@ -466,8 +490,8 @@ void eig_calc(EIG &eig, int l, double M) {
     } else {
         double sum_a = 0, sum_b = 0;
         for (int m = 0; m < M / 2; m++) {
-            sum_a += ImportanceSampling(eig, Y, theta);
-            sum_b += ImportanceSampling(eig, Y, theta);
+            sum_a += importance_sampling(eig, Y, u_approximation) * p_theta;
+            sum_b += importance_sampling(eig, Y, u_approximation) * p_theta;
         }
 
         double sum = sum_a + sum_b;
@@ -482,7 +506,7 @@ void eig_calc(EIG &eig, int l, double M) {
     }
 }
 
-void calc(EIG &eig, int l, double M) {
+void calc(Eig &eig, const int l, const double M) {
     for (int n = 0; n < eig.N[l]; n++) {
         eig_calc(eig, l, M);
     }
@@ -496,7 +520,7 @@ void calc(EIG &eig, int l, double M) {
     cout << log2(eig.aveP[l]) << " " << log2(eig.aveZ[l]) << " " << log2(eig.varP[l]) << " " << log2(eig.varZ[l]) << '\n';
 }
 
-void estimate_alpha_beta(EIG &eig, int L, double n) {
+void estimate_alpha_beta(Eig &eig, const int L, const double n) {
     fill(eig.N.begin(), eig.N.end(), n);
 
     cout << "aveP    aveZ    varP    varZ\n";
@@ -514,13 +538,12 @@ int main() {
 
     clock_t start = clock();
 
-    EIG eig;
+    Eig eig;
     eig.init();
 
     int L = 10;
     double outer = 2000.0;
 
-    // eig.rand_init(L, outer);
     estimate_alpha_beta(eig, L, outer);
 
     clock_t end = clock();
