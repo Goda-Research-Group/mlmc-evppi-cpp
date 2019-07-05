@@ -277,6 +277,7 @@ struct Eig {
 
     // level 0 でのinner sample数
     double init_M;
+    double alpha, beta, gamma;
 
     vec N, P, P2, aveP, varP, Z, Z2, aveZ, varZ;
 
@@ -318,7 +319,7 @@ struct Eig {
         laplace_cholesky = Cholesky(laplace_sigma_approximation);
 
         max_level = 20;
-        num_thread = 100;
+        num_thread = thread::hardware_concurrency() / 2;
         init_M = 2.0;
 
         N.resize(max_level, 0.0);
@@ -524,19 +525,28 @@ void calc(Eig &eig, const int l, const double M) {
     }
 }
 
+double regression(const vector <double> &x, const vector <double> &y) {
+    double sz = x.size();
+    double sum_x = 0.0, sum_y = 0.0, sum_x_x = 0.0, sum_x_y = 0.0;
+    for (int l = 0; l < sz; l++) {
+        sum_x += x[l];
+        sum_y += y[l];
+        sum_x_x += x[l] * x[l];
+        sum_x_y += x[l] * y[l];
+    }
+
+    return (sz * sum_x_y - sum_x * sum_y) / (sz * sum_x_x - sum_x * sum_x);
+}
+
 void estimate_alpha_beta(Eig &eig, const int L, const double n) {
     fill(eig.N.begin(), eig.N.end(), n);
 
+    cout << "----------------------------\n";
     cout << "aveP    aveZ    varP    varZ\n";
 
-    double M = eig.init_M * pow(2, L);
-    vector <thread> th(L + 1);
-    for (int l = L; l >= 0; l--, M /= 2) {
-        th[l] = thread(calc, ref(eig), l, M);
-    }
-
-    for (int l = 0; l <= L; l++) {
-        th[l].join();
+    double M = eig.init_M;
+    for (int l = 0; l <= L; l++, M *= 2) {
+        calc(eig, l, M);
 
         eig.aveP[l] = abs(eig.P[l] / eig.N[l]);
         eig.varP[l] = eig.P2[l] / eig.N[l] - eig.aveP[l] * eig.aveP[l];
@@ -546,6 +556,30 @@ void estimate_alpha_beta(Eig &eig, const int L, const double n) {
 
         cout << log2(eig.aveP[l]) << " " << log2(eig.aveZ[l]) << " " << log2(eig.varP[l]) << " " << log2(eig.varZ[l]) << '\n';
     }
+
+    cout << "----------------------------\n";
+    cout << "linear regression\n";
+
+    vector<double> x(L);
+    vector<double> y(L);
+
+    // liner regression for alpha
+    for (int l = 1; l <= L; l++) {
+        x[l - 1] = l;
+        y[l - 1] = -log2(eig.aveZ[l]);
+    }
+    eig.alpha = regression(x, y);
+    cout << "alpha = " << eig.alpha << "\n";
+
+    // liner regression for beta
+    for (int l = 1; l <= L; l++) {
+        x[l - 1] = l;
+        y[l - 1] = -log2(eig.varZ[l]);
+    }
+    eig.beta = regression(x, y);
+    cout << "beta =  " << eig.beta << "\n";
+
+    cout << "----------------------------\n";
 }
 
 int main() {
@@ -563,6 +597,6 @@ int main() {
     estimate_alpha_beta(eig, L, outer);
 
     auto end = chrono::high_resolution_clock::now();
-    auto msec = chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
-    cout << msec / 1000.0 << " (sec)\n";
+    auto msec = chrono::duration_cast<chrono::milliseconds>(end - start).count();
+    cout << "total time = " << msec / 1000.0 << " (sec)\n";
 }
