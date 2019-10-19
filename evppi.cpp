@@ -1,16 +1,11 @@
 
 #include <iostream>
 #include <iomanip>
-#include <random>
 #include <math.h>
 
 #include "evppi.hpp"
 
 using namespace std;
-
-random_device rd;
-mt19937 generator(rd());
-normal_distribution<double> distribution(0.0, 1.0);
 
 Result *result_init();
 
@@ -37,49 +32,62 @@ double log2_regression(vector <double> &y) {
 }
 
 void evppi_calc(EvppiInfo *info, Result *result) {
-    double x = distribution(generator);
+    pre_sampling(info->pre);
 
-    double max_sum = 0.0, sum_max = 0.0;
+    double max_sum = 0.0, sum_max1 = 0.0, sum_max2 = 0.0;
     for (int m = 0; m < info->m; m++) {
-        double y = distribution(generator);
-        double val = f(x, y);
-        max_sum += max(0.0, val);
-        sum_max += val;
+        post_sampling(info->post);
+
+        double val1 = f1(info);
+        double val2 = f2(info);
+        max_sum += max(val1, val2);
+        sum_max1 += val1;
+        sum_max2 += val2;
     }
 
     double M = (double)(info->m);
     max_sum /= M;
-    sum_max = max(0.0, sum_max / M);
+    double sum_max = max(sum_max1, sum_max2) / M;
 
     double p = max_sum - sum_max;
     result->dp += p;
     result->dp2 += p * p;
 
     if (info->level) {
-        double max_sum = 0.0, sum_max = 0.0;
-        double first_max_sum = 0.0, first_sum_max = 0.0;
-        double second_max_sum = 0.0, second_sum_max = 0.0;
+        double max_sum = 0.0, sum_max1 = 0.0, sum_max2 = 0.0;
+        double first_max_sum = 0.0, first_sum_max1 = 0.0, first_sum_max2 = 0.0;
+        double second_max_sum = 0.0, second_sum_max1 = 0.0, second_sum_max2 = 0.0;
 
         for (int m = 0; m < info->m / 2; m++) {
-            double y = distribution(generator);
-            double val = f(x, y);
+            post_sampling(info->post);
 
-            first_max_sum += max(0.0, val);
-            max_sum += max(0.0, val);
+            double val1 = f1(info);
+            double val2 = f2(info);
 
-            first_sum_max += val;
-            sum_max += val;
+            first_max_sum += max(val1, val2);
+            max_sum += max(val1, val2);
+
+            first_sum_max1 += val1;
+            first_sum_max2 += val2;
+
+            sum_max1 += val1;
+            sum_max2 += val2;
         }
 
         for (int m = info->m / 2; m < info->m; m++) {
-            double y = distribution(generator);
-            double val = f(x, y);
+            post_sampling(info->post);
 
-            second_max_sum += max(0.0, val);
-            max_sum += max(0.0, val);
+            double val1 = f1(info);
+            double val2 = f2(info);
 
-            second_sum_max += val;
-            sum_max += val;
+            second_max_sum += max(val1, val2);
+            max_sum += max(val1, val2);
+
+            second_sum_max1 += val1;
+            second_sum_max2 += val2;
+
+            sum_max1 += val1;
+            sum_max2 += val2;
         }
 
         double M = (double)(info->m);
@@ -88,13 +96,9 @@ void evppi_calc(EvppiInfo *info, Result *result) {
         first_max_sum /= (M / 2);
         second_max_sum /= (M / 2);
 
-        sum_max /= M;
-        first_sum_max /= (M / 2);
-        second_sum_max /= (M / 2);
-
-        sum_max = max(0.0, sum_max);
-        first_sum_max = max(0.0, first_sum_max);
-        second_sum_max = max(0.0, second_sum_max);
+        double sum_max = max(sum_max1, sum_max2) / M;
+        double first_sum_max = max(first_sum_max1, first_sum_max2) / (M / 2);
+        double second_sum_max = max(second_sum_max1, second_sum_max2) / (M / 2);
 
         double z = max_sum - sum_max;
         z -= (first_max_sum - first_sum_max) / 2;
@@ -234,6 +238,10 @@ EvppiInfo *evppi_init(int level, int m) {
     EvppiInfo *info = new EvppiInfo;
     info->level = level;
     info->m = m;
+    info->pre = new PreInfo;
+    pre_init(info->pre);
+    info->post = new PostInfo;
+    post_init(info->post);
     return info;
 }
 
