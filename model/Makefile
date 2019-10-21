@@ -1,5 +1,5 @@
-PROGRAM = test
-SRCS = test.cpp ../evppi.cpp
+PROGRAM = evppi
+SRCS = bkoc.cpp ../evppi.cpp
 OBJS = $(SRCS:.cpp = .o)
 CC = g++
 CFLAGS = -Wall
