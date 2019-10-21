@@ -22,7 +22,7 @@ double regression(vector <double> &x, vector <double> &y) {
 }
 
 double log2_regression(vector <double> &y) {
-    size_t n = y.size() - 1;
+    int n = y.size() - 1;
     vector<double> x(n), log2_y(n);
     for (int l = 1; l <= n; l++) {
         x[l - 1] = l;
@@ -203,7 +203,7 @@ void mlmc_test_eval_eps(MlmcInfo *info, vector <double> &eps) {
     cout << "eps       mlmc      std       save    N...\n";
     cout << "----------------------------------------------------------------\n";
 
-    for (int i = 0; i < eps.size(); i++) {
+    for (int i = 0; i < (int)eps.size(); i++) {
         for (int l = 0; l <= info->max_level; l++) {
             info->layer[l].n = 0;
             info->layer[l].aveZ = 0.0;
