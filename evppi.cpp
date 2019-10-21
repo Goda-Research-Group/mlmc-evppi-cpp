@@ -1,5 +1,6 @@
 
 #include <iostream>
+#include <fstream>
 #include <iomanip>
 #include <math.h>
 
@@ -125,10 +126,14 @@ void mlmc_calc(MlmcInfo *info, int level, vector <int> &n_samples) {
     }
 }
 
-void mlmc_test(MlmcInfo *info, int test_level, int n_sample) {
+void mlmc_test(MlmcInfo *info, int test_level, int n_sample, const char *file_name) {
     cout.precision(2);
-    cout << " l  aveZ      aveP      varZ      varP" << endl;
-    cout << "-------------------------------------------" << endl;
+    cout << " l  aveZ      aveP      varZ      varP\n";
+    cout << "-------------------------------------------\n";
+
+    ofstream ofs(file_name, ios::out);
+    ofs << " l  aveZ      aveP      varZ      varP\n";
+    ofs << "-------------------------------------------\n";
 
     vector <int> n_samples(test_level + 1, n_sample);
     vector <double> aveZ(test_level + 1), varZ(test_level + 1);
@@ -139,9 +144,12 @@ void mlmc_test(MlmcInfo *info, int test_level, int n_sample) {
         varZ[l] = info->layer[l].varZ;
 
         cout << right << setw(2) << l << "  ";
-
         cout << scientific << aveZ[l] << "  " << info->layer[l].aveP << "  ";
         cout << varZ[l] << "  " << info->layer[l].varP << '\n';
+
+        ofs << right << setw(2) << l << "  ";
+        ofs << scientific << aveZ[l] << "  " << info->layer[l].aveP << "  ";
+        ofs << varZ[l] << "  " << info->layer[l].varP << '\n';
     }
 
     info->alpha = log2_regression(aveZ);
@@ -149,7 +157,12 @@ void mlmc_test(MlmcInfo *info, int test_level, int n_sample) {
 
     cout << fixed << '\n';
     cout << "alpha = " << info->alpha << '\n';
-    cout << "beta  = " << info->beta << "\n\n";
+    cout << "beta  = " << info->beta << '\n' << endl;
+
+    ofs << fixed << '\n';
+    ofs << "alpha = " << info->alpha << '\n';
+    ofs << "beta  = " << info->beta << '\n' << endl;
+    ofs.close();
 }
 
 void mlmc_eval_eps(MlmcInfo *info, int level, double eps) {
@@ -199,9 +212,13 @@ void mlmc_eval_eps(MlmcInfo *info, int level, double eps) {
     }
 }
 
-void mlmc_test_eval_eps(MlmcInfo *info, vector <double> &eps) {
+void mlmc_test_eval_eps(MlmcInfo *info, vector <double> &eps, const char *file_name) {
     cout << "eps       mlmc      std       save    N...\n";
     cout << "----------------------------------------------------------------\n";
+
+    ofstream ofs(file_name, ios::app);
+    ofs << "eps       mlmc      std       save    N...\n";
+    ofs << "----------------------------------------------------------------\n";
 
     for (int i = 0; i < (int)eps.size(); i++) {
         for (int l = 0; l <= info->max_level; l++) {
@@ -227,11 +244,21 @@ void mlmc_test_eval_eps(MlmcInfo *info, vector <double> &eps) {
         cout << scientific << eps[i] << "  ";
         cout << scientific << mlmc_cost << "  " << std_cost << "  ";
         cout << right << setw(4) << fixed << std_cost / mlmc_cost << "  ";
+
+        ofs << scientific << eps[i] << "  ";
+        ofs << scientific << mlmc_cost << "  " << std_cost << "  ";
+        ofs << right << setw(4) << fixed << std_cost / mlmc_cost << "  ";
+
         for (int l = 0; l <= level; l++) {
             cout << info->layer[l].n << ' ';
+            ofs << info->layer[l].n << ' ';
         }
+
         cout << endl;
+        ofs << endl;
     }
+
+    ofs.close();
 }
 
 EvppiInfo *evppi_init(int level, int m) {

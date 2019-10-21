@@ -52,8 +52,8 @@ void post_sampling(PostInfo *info);
 double f1(EvppiInfo *info);
 double f2(EvppiInfo *info);
 
-void mlmc_test(MlmcInfo *info, int test_level, int n_sample);
-void mlmc_test_eval_eps(MlmcInfo *info, vector <double> &eps);
+void mlmc_test(MlmcInfo *info, int test_level, int n_sample, const char *file_name = "output.txt");
+void mlmc_test_eval_eps(MlmcInfo *info, vector <double> &eps, const char *file_name = "output.txt");
 MlmcInfo *mlmc_init(int m0, int s, int max_level, double gamma, double theta);
 
 #endif
