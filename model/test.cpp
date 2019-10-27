@@ -19,7 +19,7 @@ normal_distribution<double> y_dist(0.0, 1.0);
 
 void sampling_init(EvppiInfo *info) {
     info->model_num = 2;
-    info->sample.resize(info->model_num);
+    info->sample.resize(2);
     info->val.resize(info->model_num);
 }
 
