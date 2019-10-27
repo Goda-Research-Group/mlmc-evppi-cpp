@@ -3,6 +3,7 @@
 #include <fstream>
 #include <iomanip>
 #include <math.h>
+#include <algorithm>
 
 #include "evppi.hpp"
 
@@ -33,78 +34,59 @@ double log2_regression(vector <double> &y) {
 }
 
 void evppi_calc(EvppiInfo *info, Result *result) {
-    pre_sampling(info->pre);
+    pre_sampling(info);
 
-    double max_sum = 0.0, sum_max1 = 0.0, sum_max2 = 0.0;
+    vector <double> sum(info->model_num);
+    double sum_of_max = 0.0;
     for (int m = 0; m < info->m; m++) {
-        post_sampling(info->post);
+        post_sampling(info);
 
-        double val1 = f1(info);
-        double val2 = f2(info);
-        max_sum += max(val1, val2);
-        sum_max1 += val1;
-        sum_max2 += val2;
+        f(info);
+        double mx = 1e-10;
+        for (int i = 0; i < info->model_num; i++) {
+            mx = max(mx, info->val[i]);
+            sum[i] += info->val[i];
+        }
+        sum_of_max += mx;
     }
 
     double M = (double)(info->m);
-    max_sum /= M;
-    double sum_max = max(sum_max1, sum_max2) / M;
+    sum_of_max /= M;
+    double max_of_sum = *max_element(sum.begin(), sum.end()) / M;
 
-    double p = max_sum - sum_max;
+    double p = sum_of_max - max_of_sum;
     result->dp += p;
     result->dp2 += p * p;
 
     if (info->level) {
-        double max_sum = 0.0, sum_max1 = 0.0, sum_max2 = 0.0;
-        double first_max_sum = 0.0, first_sum_max1 = 0.0, first_sum_max2 = 0.0;
-        double second_max_sum = 0.0, second_sum_max1 = 0.0, second_sum_max2 = 0.0;
-
+        vector <double> sum(info->model_num);
+        vector <double> sum_a(info->model_num), sum_b(info->model_num);
         for (int m = 0; m < info->m / 2; m++) {
-            post_sampling(info->post);
+            post_sampling(info);
 
-            double val1 = f1(info);
-            double val2 = f2(info);
-
-            first_max_sum += max(val1, val2);
-            max_sum += max(val1, val2);
-
-            first_sum_max1 += val1;
-            first_sum_max2 += val2;
-
-            sum_max1 += val1;
-            sum_max2 += val2;
+            f(info);
+            for (int i = 0; i < info->model_num; i++) {
+                sum[i] += info->val[i];
+                sum_a[i] += info->val[i];
+            }
         }
 
         for (int m = info->m / 2; m < info->m; m++) {
-            post_sampling(info->post);
+            post_sampling(info);
 
-            double val1 = f1(info);
-            double val2 = f2(info);
-
-            second_max_sum += max(val1, val2);
-            max_sum += max(val1, val2);
-
-            second_sum_max1 += val1;
-            second_sum_max2 += val2;
-
-            sum_max1 += val1;
-            sum_max2 += val2;
+            f(info);
+            for (int i = 0; i < info->model_num; i++) {
+                sum[i] += info->val[i];
+                sum_b[i] += info->val[i];
+            }
         }
 
         double M = (double)(info->m);
+        double max_of_sum = *max_element(sum.begin(), sum.end()) / M;
+        double max_of_sum_a = *max_element(sum_a.begin(), sum_a.end()) / (M / 2.0);
+        double max_of_sum_b = *max_element(sum_b.begin(), sum_b.end()) / (M / 2.0);
 
-        max_sum /= M;
-        first_max_sum /= (M / 2);
-        second_max_sum /= (M / 2);
-
-        double sum_max = max(sum_max1, sum_max2) / M;
-        double first_sum_max = max(first_sum_max1, first_sum_max2) / (M / 2);
-        double second_sum_max = max(second_sum_max1, second_sum_max2) / (M / 2);
-
-        double z = max_sum - sum_max;
-        z -= (first_max_sum - first_sum_max) / 2;
-        z -= (second_max_sum - second_sum_max) / 2;
-
+        double z = (max_of_sum_a + max_of_sum_b) / 2.0 - max_of_sum;
         result->pf += z;
         result->pf2 += z * z;
     }
@@ -265,10 +247,7 @@ EvppiInfo *evppi_init(int level, int m) {
     EvppiInfo *info = new EvppiInfo;
     info->level = level;
     info->m = m;
-    info->pre = new PreInfo;
-    pre_init(info->pre);
-    info->post = new PostInfo;
-    post_init(info->post);
+    sampling_init(info);
     return info;
 }
 

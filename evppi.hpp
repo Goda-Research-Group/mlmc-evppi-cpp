@@ -7,19 +7,11 @@
 using namespace std;
 
 typedef struct {
-    vector <double> x;
-} PreInfo;
-
-typedef struct {
-    vector <double> y;
-} PostInfo;
-
-typedef struct {
     int level;
     int m; // inner loop の回数
-    double val;
-    PreInfo *pre;
-    PostInfo *post;
+    int model_num;
+    vector <double> sample;
+    vector <double> val;
 } EvppiInfo;
 
 typedef struct {
@@ -44,13 +36,10 @@ typedef struct {
     vector <MlmcLayerInfo> layer;
 } MlmcInfo;
 
-void pre_init(PreInfo *info);
-void post_init(PostInfo *info);
-void pre_sampling(PreInfo *info);
-void post_sampling(PostInfo *info);
-
-double f1(EvppiInfo *info);
-double f2(EvppiInfo *info);
+void sampling_init(EvppiInfo *info);
+void pre_sampling(EvppiInfo *info);
+void post_sampling(EvppiInfo *info);
+void f(EvppiInfo *info);
 
 void mlmc_test(MlmcInfo *info, int test_level, int n_sample, const char *file_name = "output.txt");
 void mlmc_test_eval_eps(MlmcInfo *info, vector <double> &eps, const char *file_name = "output.txt");

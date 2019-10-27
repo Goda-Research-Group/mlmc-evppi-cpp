@@ -17,28 +17,23 @@ int n_sample = 200000;
 normal_distribution<double> x_dist(0.0, 1.0);
 normal_distribution<double> y_dist(0.0, 1.0);
 
-void pre_init(PreInfo *info) {
-    info->x.resize(1);
+void sampling_init(EvppiInfo *info) {
+    info->model_num = 2;
+    info->sample.resize(info->model_num);
+    info->val.resize(info->model_num);
 }
 
-void post_init(PostInfo *info) {
-    info->y.resize(1);
+void pre_sampling(EvppiInfo *info) {
+    info->sample[0] = x_dist(generator);
 }
 
-void pre_sampling(PreInfo *info) {
-    info->x[0] = x_dist(generator);
+void post_sampling(EvppiInfo *info) {
+    info->sample[1] = y_dist(generator);
 }
 
-void post_sampling(PostInfo *info) {
-    info->y[0] = y_dist(generator);
-}
-
-double f1(EvppiInfo *info) {
-    return 0.0;
-}
-
-double f2(EvppiInfo *info) {
-    return info->pre->x[0] + info->post->y[0];
+void f(EvppiInfo *info) {
+    info->val[0] = 0.0;
+    info->val[1] = info->sample[0] + info->sample[1];
 }
 
 int main() {
