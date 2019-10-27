@@ -82,38 +82,43 @@ double logit(double x) {
 // EVPPI for relative effect を、ExposedとSimpleで比較
 // TODO: 評価関数fを2個から任意個に設定できるようにする
 
-void pre_init(PreInfo *info) {
-    info->x.resize(3);
+/*
+ * わかりにくくてすまん...構造体をうまく使いたい...
+ * sample[0~3]: pSSI
+ * sample[4]: SSIcost
+ * sample[5~7]: d
+ */
+
+void sampling_init(EvppiInfo *info) {
+    info->model_num = 4;
+    info->sample.resize(8);
+    info->val.resize(info->model_num);
 }
 
-void post_init(PostInfo *info) {
-    info->y.resize(4);
+void pre_sampling(EvppiInfo *info) {
+    vector <double> r = rand_multinormal(u, sigma_cholesky);
+    info->sample[5] = r[0];
+    info->sample[6] = r[1];
+    info->sample[7] = r[2];
 }
 
-void pre_sampling(PreInfo *info) {
-    info->x = rand_multinormal(u, sigma_cholesky);
+void post_sampling(EvppiInfo *info) {
+    info->sample[0] = p_ssi_dist(generator);
+    info->sample[1] = expit(logit(info->sample[0]) + info->sample[5]);
+    info->sample[2] = expit(logit(info->sample[0]) + info->sample[6]);
+    info->sample[3] = expit(logit(info->sample[0]) + info->sample[7]);
+    info->sample[4] = ssi_cost(generator);
 }
 
-void post_sampling(PostInfo *info) {
-    info->y[0] = p_ssi_dist(generator);
-    info->y[2] = ssi_cost(generator);
-    info->y[3] = info->y[2];
-}
-
-double f1(EvppiInfo *info) {
-    info->post->y[1] = expit(logit(info->post->y[0]) + info->pre->x[0]);
-
-    return -dressing_cost[0] - info->post->y[0] * (info->post->y[2] + ssi_qaly_loss * wtp);
-}
-
-double f2(EvppiInfo *info) {
-    info->post->y[1] = expit(logit(info->post->y[0]) + info->pre->x[0]);
-
-    return -dressing_cost[1] - info->post->y[1] * (info->post->y[3] + ssi_qaly_loss * wtp);
+void f(EvppiInfo *info) {
+    info->val[0] = -dressing_cost[0] - info->sample[0] * (info->sample[4] + ssi_qaly_loss * wtp);
+    info->val[1] = -dressing_cost[1] - info->sample[1] * (info->sample[4] + ssi_qaly_loss * wtp);
+    info->val[2] = -dressing_cost[2] - info->sample[2] * (info->sample[4] + ssi_qaly_loss * wtp);
+    info->val[3] = -dressing_cost[3] - info->sample[3] * (info->sample[4] + ssi_qaly_loss * wtp);
 }
 
 // params for mlmc
-int m0 = 2;
+int m0 = 1;
 int s = 2;
 int max_level = 20;
 int test_level = 10;
@@ -144,8 +149,8 @@ int main() {
     mlmc_test(info, test_level, n_sim);
 
     vector <double> eps;
-    eps.push_back(0.0002);
-    eps.push_back(0.0001);
+    eps.push_back(0.02);
+    eps.push_back(0.01);
 
     mlmc_test_eval_eps(info, eps);
 
