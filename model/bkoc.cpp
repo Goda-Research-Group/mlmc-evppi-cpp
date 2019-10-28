@@ -18,7 +18,7 @@ int lambda = 10000;
 
 double rho = 0.6;
 vector <double> u(4);
-Matrix Sigma(4, 4);
+Matrix Sigma(4, 4), sigma_cholesky(4, 4);
 
 normal_distribution<double> dist1(1000, 1);
 normal_distribution<double> dist2(0.1, 0.02);
@@ -43,13 +43,13 @@ void sampling_init(EvppiInfo *info) {
 }
 
 void pre_sampling(EvppiInfo *info) {
-    vector <double> r = rand_multinormal(u, Sigma);
+    vector <double> r = rand_multinormal(u, sigma_cholesky);
     info->sample[5] = r[0];
     info->sample[14] = r[2];
 }
 
 void post_sampling(EvppiInfo *info) {
-    vector <double> r = rand_multinormal(u, Sigma);
+    vector <double> r = rand_multinormal(u, sigma_cholesky);
     info->sample[7] = r[1];
     info->sample[16] = r[3];
 
@@ -100,6 +100,8 @@ int main() {
             }
         }
     }
+
+    sigma_cholesky = Cholesky(Sigma);
 
     MlmcInfo *info = mlmc_init(m0, s, max_level, 1.0, 0.25);
     mlmc_test(info, test_level, n_sample);

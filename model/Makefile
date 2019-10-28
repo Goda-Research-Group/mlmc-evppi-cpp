@@ -1,5 +1,5 @@
 PROGRAM = evppi
-SRCS = bkoc.cpp ../evppi.cpp ../matrix.cpp
+SRCS = ssi.cpp ../evppi.cpp ../matrix.cpp
 OBJS = $(SRCS:.cpp = .o)
 CC = g++
 CFLAGS = -Wall -Wextra
