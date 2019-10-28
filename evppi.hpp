@@ -15,8 +15,8 @@ typedef struct {
 } EvppiInfo;
 
 typedef struct {
-    double dp, dp2;
-    double pf, pf2;
+    double p, p2;
+    double z, z2;
 } Result;
 
 typedef struct {

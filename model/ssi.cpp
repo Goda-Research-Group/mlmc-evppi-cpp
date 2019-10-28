@@ -48,12 +48,10 @@ vector<double> rand_multinormal(vector<double> &u, Matrix &sigma_cholesky) {
     return ret;
 }
 
-int type = 0; // 0: Exposed, 1: Simple, 2: Glue, 3: Advanced
-vector <double> dressing_cost(4);
-
 int n_sim = 20000;
 int wtp = 20000;
 double ssi_qaly_loss = 0.12;
+vector <double> dressing_cost(4);
 
 double ssi_cost_mean = 8.972237608;
 double ssi_cost_s = 0.163148238;
@@ -66,10 +64,6 @@ normal_distribution<double> p_ssi_dist(p_ssi_mean, p_ssi_se);
 vector <double> u(3);
 Matrix Sigma(3, 3);
 Matrix sigma_cholesky(3, 3);
-//p.SSI[,2]<-rnorm(Nsim,meanSIMPLE[type],seSIMPLE[type]) #P(SSI) for simple dressings
-//p.SSI[,1]<- expit(logit(p.SSI[,2])+d[,1]) #P(SSI) Exposed
-//p.SSI[,3]<- expit(logit(p.SSI[,2])+d[,2]) #P(SSI) Glue
-//p.SSI[,4]<- expit(logit(p.SSI[,2])+d[,3]) #P(SSI) Advanced
 
 double expit(double x) {
     return exp(x) / (1 + exp(x));
@@ -78,9 +72,6 @@ double expit(double x) {
 double logit(double x) {
     return log(x / (1 - x));
 }
-
-// EVPPI for relative effect を、ExposedとSimpleで比較
-// TODO: 評価関数fを2個から任意個に設定できるようにする
 
 /*
  * わかりにくくてすまん...構造体をうまく使いたい...
@@ -156,4 +147,3 @@ int main() {
 
     return 0;
 }
-

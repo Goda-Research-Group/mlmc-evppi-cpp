@@ -42,7 +42,7 @@ void evppi_calc(EvppiInfo *info, Result *result) {
         post_sampling(info);
 
         f(info);
-        double mx = 1e-10;
+        double mx = 1e-20;
         for (int i = 0; i < info->model_num; i++) {
             mx = max(mx, info->val[i]);
             sum[i] += info->val[i];
@@ -55,8 +55,8 @@ void evppi_calc(EvppiInfo *info, Result *result) {
     double max_of_sum = *max_element(sum.begin(), sum.end()) / M;
 
     double p = sum_of_max - max_of_sum;
-    result->dp += p;
-    result->dp2 += p * p;
+    result->p += p;
+    result->p2 += p * p;
 
     if (info->level) {
         vector <double> sum(info->model_num);
@@ -87,8 +87,8 @@ void evppi_calc(EvppiInfo *info, Result *result) {
         double max_of_sum_b = *max_element(sum_b.begin(), sum_b.end()) / (M / 2.0);
 
         double z = (max_of_sum_a + max_of_sum_b) / 2.0 - max_of_sum;
-        result->pf += z;
-        result->pf2 += z * z;
+        result->z += z;
+        result->z2 += z * z;
     }
 }
 
@@ -100,10 +100,10 @@ void mlmc_calc(MlmcInfo *info, int level, vector <int> &n_samples) {
 
         Result *result = info->layer[l].result;
         double n = (double)n_samples[l];
-        info->layer[l].aveP = result->dp / n;
-        info->layer[l].aveZ = result->pf / n;
-        info->layer[l].varP = result->dp2 / n - info->layer[l].aveP * info->layer[l].aveP;
-        info->layer[l].varZ = result->pf2 / n - info->layer[l].aveZ * info->layer[l].aveZ;
+        info->layer[l].aveP = result->p / n;
+        info->layer[l].aveZ = result->z / n;
+        info->layer[l].varP = result->p2 / n - info->layer[l].aveP * info->layer[l].aveP;
+        info->layer[l].varZ = result->z2 / n - info->layer[l].aveZ * info->layer[l].aveZ;
         info->layer[l].n = n_samples[l];
     }
 }
@@ -150,7 +150,7 @@ void mlmc_test(MlmcInfo *info, int test_level, int n_sample, const char *file_na
 void mlmc_eval_eps(MlmcInfo *info, int level, double eps) {
     bool converged = false;
     vector <int> n_samples(info->max_level + 1);
-    for (int l = 0; l <= level; l++) n_samples[l] = 1000;
+    for (int l = 0; l <= level; l++) n_samples[l] = 10;
 
     while (!converged) {
         double sum = 0.0;
@@ -253,8 +253,8 @@ EvppiInfo *evppi_init(int level, int m) {
 
 Result *result_init() {
     Result *result = new Result;
-    result->dp = result->dp2 = 0;
-    result->pf = result->pf2 = 0;
+    result->p = result->p2 = 0;
+    result->z = result->z2 = 0;
     return result;
 }
 
