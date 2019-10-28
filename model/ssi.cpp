@@ -71,37 +71,17 @@ int max_level = 20;
 int test_level = 10;
 
 int main() {
-    dressing_cost[0] = 0.0;
-    dressing_cost[1] = 5.25;
-    dressing_cost[2] = 13.86;
-    dressing_cost[3] = 21.39;
-
-    u[0] = 0.05021921904305;
-    u[1] = -0.06629096195095;
-    u[2] = -0.178047360396;
-
-    Sigma[0][0] = 0.06546909;
-    Sigma[0][1] = 0.06274766;
-    Sigma[0][2] = 0.01781241;
-    Sigma[1][0] = 0.06274766;
-    Sigma[1][1] = 0.21792037;
-    Sigma[1][2] = 0.01727998;
-    Sigma[2][0] = 0.01781241;
-    Sigma[2][1] = 0.01727998;
-    Sigma[2][2] = 0.04631648;
-
+    dressing_cost = {0.0, 5.25, 13.86, 21.39};
+    u = {0.05021921904305, -0.06629096195095, -0.178047360396};
+    Sigma[0] = {0.06546909, 0.06274766, 0.01781241};
+    Sigma[1] = {0.06274766, 0.21792037, 0.01727998};
+    Sigma[2] = {0.01781241, 0.01727998, 0.04631648};
     sigma_cholesky = Cholesky(Sigma);
 
     MlmcInfo *info = mlmc_init(m0, s, max_level, 1.0, 0.25);
     mlmc_test(info, test_level, n_sim);
 
-    vector <double> eps;
-    eps.push_back(0.0002);
-    eps.push_back(0.0001);
-    eps.push_back(0.00005);
-    eps.push_back(0.00002);
-    eps.push_back(0.00001);
-
+    vector <double> eps = {0.0002, 0.0001, 0.00005, 0.00001, 0.00002};
     mlmc_test_eval_eps(info, eps);
 
     return 0;

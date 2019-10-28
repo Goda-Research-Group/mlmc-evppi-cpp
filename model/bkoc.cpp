@@ -85,12 +85,9 @@ void f(EvppiInfo *info) {
 }
 
 int main() {
-    u[0] = 0.7;
-    u[1] = 3.0;
-    u[2] = 0.8;
-    u[3] = 3.0;
+    u = {0.7, 3.0, 0.8, 3.0};
 
-    double x[] = {0.1, 0.5, 0.1, 1.0};
+    vector <double> x = {0.1, 0.5, 0.1, 1.0};
     for (int i = 0; i < 4; i++) {
         for (int j = 0; j < 4; j++) {
             if (i == j) {
@@ -106,13 +103,7 @@ int main() {
     MlmcInfo *info = mlmc_init(m0, s, max_level, 1.0, 0.25);
     mlmc_test(info, test_level, n_sample);
 
-    vector <double> eps;
-    eps.push_back(2.0);
-    eps.push_back(1.0);
-    eps.push_back(0.5);
-    eps.push_back(0.2);
-    eps.push_back(0.1);
-
+    vector <double> eps = {2.0, 1.0, 0.5, 0.2, 0.1};
     mlmc_test_eval_eps(info, eps);
 
     return 0;
