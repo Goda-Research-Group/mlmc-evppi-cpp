@@ -6,6 +6,7 @@ using namespace std;
 
 #include "../evppi.hpp"
 #include "../matrix.hpp"
+#include "../util.hpp"
 
 random_device rd;
 mt19937 generator(rd());
@@ -26,14 +27,6 @@ normal_distribution<double> p_ssi_dist(p_ssi_mean, p_ssi_se);
 vector <double> u(3);
 Matrix Sigma(3, 3);
 Matrix sigma_cholesky(3, 3);
-
-double expit(double x) {
-    return exp(x) / (1 + exp(x));
-}
-
-double logit(double x) {
-    return log(x / (1 - x));
-}
 
 /*
  * わかりにくくてすまん...構造体をうまく使いたい...
