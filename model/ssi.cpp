@@ -95,13 +95,14 @@ void pre_sampling(EvppiInfo *info) {
 
 void post_sampling(EvppiInfo *info) {
     info->sample[0] = p_ssi_dist(generator);
-    info->sample[1] = expit(logit(info->sample[0]) + info->sample[5]);
-    info->sample[2] = expit(logit(info->sample[0]) + info->sample[6]);
-    info->sample[3] = expit(logit(info->sample[0]) + info->sample[7]);
     info->sample[4] = ssi_cost(generator);
 }
 
 void f(EvppiInfo *info) {
+    info->sample[1] = expit(logit(info->sample[0]) + info->sample[5]);
+    info->sample[2] = expit(logit(info->sample[0]) + info->sample[6]);
+    info->sample[3] = expit(logit(info->sample[0]) + info->sample[7]);
+
     info->val[0] = -dressing_cost[0] - info->sample[0] * (info->sample[4] + ssi_qaly_loss * wtp);
     info->val[1] = -dressing_cost[1] - info->sample[1] * (info->sample[4] + ssi_qaly_loss * wtp);
     info->val[2] = -dressing_cost[2] - info->sample[2] * (info->sample[4] + ssi_qaly_loss * wtp);
@@ -140,8 +141,11 @@ int main() {
     mlmc_test(info, test_level, n_sim);
 
     vector <double> eps;
-    eps.push_back(0.02);
-    eps.push_back(0.01);
+    eps.push_back(0.0002);
+    eps.push_back(0.0001);
+    eps.push_back(0.00005);
+    eps.push_back(0.00002);
+    eps.push_back(0.00001);
 
     mlmc_test_eval_eps(info, eps);
 

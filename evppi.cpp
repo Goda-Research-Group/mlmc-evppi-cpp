@@ -42,7 +42,7 @@ void evppi_calc(EvppiInfo *info, Result *result) {
         post_sampling(info);
 
         f(info);
-        double mx = 1e-20;
+        double mx = -1e30;
         for (int i = 0; i < info->model_num; i++) {
             mx = max(mx, info->val[i]);
             sum[i] += info->val[i];
@@ -81,10 +81,9 @@ void evppi_calc(EvppiInfo *info, Result *result) {
             }
         }
 
-        double M = (double)(info->m);
-        double max_of_sum = *max_element(sum.begin(), sum.end()) / M;
-        double max_of_sum_a = *max_element(sum_a.begin(), sum_a.end()) / (M / 2.0);
-        double max_of_sum_b = *max_element(sum_b.begin(), sum_b.end()) / (M / 2.0);
+        double max_of_sum = *max_element(sum.begin(), sum.end()) / (double)(info->m);
+        double max_of_sum_a = *max_element(sum_a.begin(), sum_a.end()) / (double)(info->m / 2);
+        double max_of_sum_b = *max_element(sum_b.begin(), sum_b.end()) / (double)(info->m - info->m / 2);
 
         double z = (max_of_sum_a + max_of_sum_b) / 2.0 - max_of_sum;
         result->z += z;
@@ -150,7 +149,7 @@ void mlmc_test(MlmcInfo *info, int test_level, int n_sample, const char *file_na
 void mlmc_eval_eps(MlmcInfo *info, int level, double eps) {
     bool converged = false;
     vector <int> n_samples(info->max_level + 1);
-    for (int l = 0; l <= level; l++) n_samples[l] = 10;
+    for (int l = 0; l <= level; l++) n_samples[l] = 1000;
 
     while (!converged) {
         double sum = 0.0;
