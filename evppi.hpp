@@ -15,14 +15,14 @@ typedef struct {
 } EvppiInfo;
 
 typedef struct {
-    double p, p2;
-    double z, z2;
+    double p1, p2;
+    double z1, z2, z3, z4;
 } Result;
 
 typedef struct {
     int n; // outer loop の回数
     double cost;
-    double aveZ, aveP, varZ, varP;
+    double aveZ, aveP, varZ, varP, kurt;
     EvppiInfo *evppi_info;
     Result *result;
 } MlmcLayerInfo;

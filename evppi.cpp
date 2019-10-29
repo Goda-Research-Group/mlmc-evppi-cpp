@@ -34,7 +34,7 @@ void evppi_calc(EvppiInfo *info, Result *result) {
     double max_of_sum = *max_element(sum.begin(), sum.end()) / M;
 
     double p = sum_of_max - max_of_sum;
-    result->p += p;
+    result->p1 += p;
     result->p2 += p * p;
 
     if (info->level) {
@@ -65,8 +65,10 @@ void evppi_calc(EvppiInfo *info, Result *result) {
         double max_of_sum_b = *max_element(sum_b.begin(), sum_b.end()) / (double)(info->m - info->m / 2);
 
         double z = (max_of_sum_a + max_of_sum_b) / 2.0 - max_of_sum;
-        result->z += z;
+        result->z1 += z;
         result->z2 += z * z;
+        result->z3 += z * z * z;
+        result->z4 += z * z * z * z;
     }
 }
 
@@ -76,24 +78,36 @@ void mlmc_calc(MlmcInfo *info, int level, vector <int> &n_samples) {
             evppi_calc(info->layer[l].evppi_info, info->layer[l].result);
         }
 
+        if (l == 0) continue;
+
         Result *result = info->layer[l].result;
         double n = (double)n_samples[l];
-        info->layer[l].aveP = result->p / n;
-        info->layer[l].aveZ = result->z / n;
-        info->layer[l].varP = result->p2 / n - info->layer[l].aveP * info->layer[l].aveP;
-        info->layer[l].varZ = result->z2 / n - info->layer[l].aveZ * info->layer[l].aveZ;
+        result->p1 /= n;
+        result->p2 /= n;
+        result->z1 /= n;
+        result->z2 /= n;
+        result->z3 /= n;
+        result->z4 /= n;
+
+        info->layer[l].aveP = result->p1;
+        info->layer[l].aveZ = result->z1;
+        info->layer[l].varP = result->p2 - result->p1 * result->p1;
+        info->layer[l].varZ = result->z2 - result->z1 * result->z1;
+        info->layer[l].kurt =
+                ((result->z4 - 4 * result->z3 * result->z1 + 6 * result->z2 * result->z1 * result->z1 - 3 * result->z1 * result->z1 * result->z1 * result->z1) /
+                ((result->z2 - result->z1 * result->z1) * (result->z2 - result->z1 * result->z1)));
         info->layer[l].n = n_samples[l];
     }
 }
 
 void mlmc_test(MlmcInfo *info, int test_level, int n_sample, const char *file_name) {
     cout.precision(2);
-    cout << " l  aveZ      aveP      varZ      varP\n";
-    cout << "-------------------------------------------\n";
+    cout << " l  aveZ      aveP      varZ      varP      kurt\n";
+    cout << "----------------------------------------------------\n";
 
     ofstream ofs(file_name, ios::out);
-    ofs << " l  aveZ      aveP      varZ      varP\n";
-    ofs << "-------------------------------------------\n";
+    ofs << " l   aveZ      aveP      varZ      varP      kurt\n";
+    ofs << "-----------------------------------------------------\n";
 
     vector <int> n_samples(test_level + 1, n_sample);
     vector <double> aveZ(test_level + 1), varZ(test_level + 1);
@@ -105,11 +119,11 @@ void mlmc_test(MlmcInfo *info, int test_level, int n_sample, const char *file_na
 
         cout << right << setw(2) << l << "  ";
         cout << scientific << aveZ[l] << "  " << info->layer[l].aveP << "  ";
-        cout << varZ[l] << "  " << info->layer[l].varP << '\n';
+        cout << varZ[l] << "  " << info->layer[l].varP << "  " << info->layer[l].kurt << '\n';
 
         ofs << right << setw(2) << l << "  ";
         ofs << scientific << aveZ[l] << "  " << info->layer[l].aveP << "  ";
-        ofs << varZ[l] << "  " << info->layer[l].varP << '\n';
+        ofs << varZ[l] << "  " << info->layer[l].varP << "  " << info->layer[l].kurt << '\n';
     }
 
     info->alpha = log2_regression(aveZ);
@@ -231,8 +245,8 @@ EvppiInfo *evppi_init(int level, int m) {
 
 Result *result_init() {
     Result *result = new Result;
-    result->p = result->p2 = 0;
-    result->z = result->z2 = 0;
+    result->p1 = result->p2 = 0;
+    result->z1 = result->z2 = result->z3 = result->z4 = 0;
     return result;
 }
 
@@ -250,6 +264,7 @@ MlmcInfo *mlmc_init(int m0, int s, int max_level, double gamma, double theta) {
         info->layer[l].aveP = 0.0;
         info->layer[l].varZ = 0.0;
         info->layer[l].varP = 0.0;
+        info->layer[l].kurt = 0.0;
         info->layer[l].evppi_info = evppi_init(l, m0);
         info->layer[l].result = result_init();
         m0 *= s;
