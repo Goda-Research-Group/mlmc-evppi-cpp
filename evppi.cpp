@@ -78,8 +78,6 @@ void mlmc_calc(MlmcInfo *info, int level, vector <int> &n_samples) {
             evppi_calc(info->layer[l].evppi_info, info->layer[l].result);
         }
 
-        if (l == 0) continue;
-
         Result *result = info->layer[l].result;
         double n = (double)n_samples[l];
         result->p1 /= n;
@@ -93,9 +91,12 @@ void mlmc_calc(MlmcInfo *info, int level, vector <int> &n_samples) {
         info->layer[l].aveZ = result->z1;
         info->layer[l].varP = result->p2 - result->p1 * result->p1;
         info->layer[l].varZ = result->z2 - result->z1 * result->z1;
-        info->layer[l].kurt =
-                ((result->z4 - 4 * result->z3 * result->z1 + 6 * result->z2 * result->z1 * result->z1 - 3 * result->z1 * result->z1 * result->z1 * result->z1) /
-                ((result->z2 - result->z1 * result->z1) * (result->z2 - result->z1 * result->z1)));
+        if (l) {
+            info->layer[l].kurt =
+                    ((result->z4 - 4 * result->z3 * result->z1 + 6 * result->z2 * result->z1 * result->z1 -
+                      3 * result->z1 * result->z1 * result->z1 * result->z1) /
+                     ((result->z2 - result->z1 * result->z1) * (result->z2 - result->z1 * result->z1)));
+        }
         info->layer[l].n = n_samples[l];
     }
 }
