@@ -12,7 +12,7 @@ int m0 = 1;
 int s = 2;
 int max_level = 20;
 int test_level = 10;
-int n_sample = 200000;
+int n_sample = 20000;
 
 normal_distribution<double> x_dist(0.0, 1.0);
 normal_distribution<double> y_dist(0.0, 1.0);

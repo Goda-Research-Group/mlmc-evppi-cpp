@@ -74,30 +74,24 @@ void evppi_calc(EvppiInfo *info, Result *result) {
 
 void mlmc_calc(MlmcInfo *info, int level, vector <int> &n_samples) {
     for (int l = 0; l <= level; l++) {
-        for (int i = info->layer[l].n; i < n_samples[l]; i++) {
+        for (int i = 0; i < n_samples[l]; i++) {
             evppi_calc(info->layer[l].evppi_info, info->layer[l].result);
         }
 
-        Result *result = info->layer[l].result;
-        double n = (double)n_samples[l];
-        result->p1 /= n;
-        result->p2 /= n;
-        result->z1 /= n;
-        result->z2 /= n;
-        result->z3 /= n;
-        result->z4 /= n;
+        info->layer[l].n += n_samples[l];
+        double n = (double)info->layer[l].n;
 
-        info->layer[l].aveP = result->p1;
-        info->layer[l].aveZ = result->z1;
-        info->layer[l].varP = result->p2 - result->p1 * result->p1;
-        info->layer[l].varZ = result->z2 - result->z1 * result->z1;
+        Result *result = info->layer[l].result;
+        info->layer[l].aveP = result->p1 / n;
+        info->layer[l].aveZ = result->z1 / n;
+        info->layer[l].varP = result->p2 / n - info->layer[l].aveP * info->layer[l].aveP;
+        info->layer[l].varZ = result->z2 / n - info->layer[l].aveZ * info->layer[l].aveZ;
         if (l) {
             info->layer[l].kurt =
-                    ((result->z4 - 4 * result->z3 * result->z1 + 6 * result->z2 * result->z1 * result->z1 -
-                      3 * result->z1 * result->z1 * result->z1 * result->z1) /
-                     ((result->z2 - result->z1 * result->z1) * (result->z2 - result->z1 * result->z1)));
+                    ((result->z4 / n - 4 * result->z3 / n * info->layer[l].aveZ + 6 * result->z2 / n * info->layer[l].aveZ * info->layer[l].aveZ -
+                      3 * info->layer[l].aveZ * info->layer[l].aveZ * info->layer[l].aveZ * info->layer[l].aveZ) /
+                     ((result->z2 / n - info->layer[l].aveZ * info->layer[l].aveZ) * (result->z2 / n - info->layer[l].aveZ * info->layer[l].aveZ)));
         }
-        info->layer[l].n = n_samples[l];
     }
 }
 
@@ -107,8 +101,8 @@ void mlmc_test(MlmcInfo *info, int test_level, int n_sample, const char *file_na
     cout << "----------------------------------------------------\n";
 
     ofstream ofs(file_name, ios::out);
-    ofs << " l   aveZ      aveP      varZ      varP      kurt\n";
-    ofs << "-----------------------------------------------------\n";
+    ofs << " l  aveZ      aveP      varZ      varP      kurt\n";
+    ofs << "----------------------------------------------------\n";
 
     vector <int> n_samples(test_level + 1, n_sample);
     vector <double> aveZ(test_level + 1), varZ(test_level + 1);
@@ -146,24 +140,36 @@ void mlmc_eval_eps(MlmcInfo *info, int level, double eps) {
     for (int l = 0; l <= level; l++) n_samples[l] = 1000;
 
     while (!converged) {
+        mlmc_calc(info, level, n_samples);
+
+        for (int l = 2; l <= level; l++) {
+            double ave_min = 0.5 * info->layer[l - 1].aveZ / pow(2, info->alpha);
+            if (ave_min > info->layer[l].aveZ) {
+                info->layer[l].aveZ = ave_min;
+            }
+
+            double var_min = 0.5 * info->layer[l - 1].varZ / pow(2, info->beta);
+            if (var_min > info->layer[l].varZ) {
+                info->layer[l].varZ = var_min;
+            }
+        }
+
         double sum = 0.0;
         for (int l = 0; l <= level; l++) {
-            mlmc_calc(info, l, n_samples);
-
             sum += sqrt(info->layer[l].varZ * info->layer[l].cost);
         }
 
-        double diff = 0.0;
+        converged = true;
         for (int l = 0; l <= level; l++) {
-            int add = ceil(max(0.0,
+            n_samples[l] = ceil(max(0.0,
                     sqrt(info->layer[l].varZ / info->layer[l].cost) * sum / ((1.0 - info->theta) * eps * eps) - info->layer[l].n));
 
-            n_samples[l] += add;
-            diff += max(0.0, add - 0.01 * info->layer[l].n);
+            if (n_samples[l] > 0.01 * info->layer[l].n) {
+                converged = false;
+            }
         }
 
-        if (diff == 0) {
-            converged = true;
+        if (converged) {
             double rem = info->layer[level].aveZ / (pow(2.0, info->alpha) - 1.0);
 
             if (rem > sqrt(info->theta) * eps) {
@@ -176,9 +182,8 @@ void mlmc_eval_eps(MlmcInfo *info, int level, double eps) {
                     info->layer[level].varZ = info->layer[level - 1].varZ / pow(2.0, info->beta);
 
                     sum += sqrt(info->layer[level].varZ * info->layer[level].cost);
-                    // sum += info->layer[level].varZ * info->layer[level].cost;
                     for (int l = 0; l <= level; l++) {
-                        n_samples[l] += ceil(max(0.0,
+                        n_samples[l] = ceil(max(0.0,
                                 sqrt(info->layer[l].varZ / info->layer[l].cost) * sum / ((1.0 - info->theta) * eps * eps) - info->layer[l].n));
                     }
                 }
@@ -198,10 +203,6 @@ void mlmc_test_eval_eps(MlmcInfo *info, vector <double> &eps, const char *file_n
     for (int i = 0; i < (int)eps.size(); i++) {
         for (int l = 0; l <= info->max_level; l++) {
             info->layer[l].n = 0;
-            info->layer[l].aveZ = 0.0;
-            info->layer[l].aveP = 0.0;
-            info->layer[l].varZ = 0.0;
-            info->layer[l].varP = 0.0;
             info->layer[l].result = result_init();
         }
 
