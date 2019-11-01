@@ -193,11 +193,11 @@ void mlmc_eval_eps(MlmcInfo *info, int level, double eps) {
 }
 
 void mlmc_test_eval_eps(MlmcInfo *info, vector <double> &eps, const char *file_name) {
-    cout << "eps       mlmc      std       save    N...\n";
+    cout << "eps       value     mlmc      std       save    N...\n";
     cout << "----------------------------------------------------------------\n";
 
     ofstream ofs(file_name, ios::app);
-    ofs << "eps       mlmc      std       save    N...\n";
+    ofs << "eps       value     mlmc      std       save    N...\n";
     ofs << "----------------------------------------------------------------\n";
 
     for (int i = 0; i < (int)eps.size(); i++) {
@@ -217,11 +217,11 @@ void mlmc_test_eval_eps(MlmcInfo *info, vector <double> &eps, const char *file_n
         for (int l = 0; l <= level; l++) mlmc_cost += info->layer[l].n * info->layer[l].cost;
         double std_cost = info->layer[level].varP * info->layer[level].cost / ((1.0 - info->theta) * eps[i] * eps[i]);
 
-        cout << scientific << eps[i] << "  ";
+        cout << scientific << eps[i] << "  " << info->layer[level].aveP << "  ";
         cout << scientific << mlmc_cost << "  " << std_cost << "  ";
         cout << right << setw(4) << fixed << std_cost / mlmc_cost << "  ";
 
-        ofs << scientific << eps[i] << "  ";
+        ofs << scientific << eps[i] << "  " << info->layer[level].aveP << "  ";
         ofs << scientific << mlmc_cost << "  " << std_cost << "  ";
         ofs << right << setw(4) << fixed << std_cost / mlmc_cost << "  ";
 
