@@ -96,13 +96,12 @@ void mlmc_calc(MlmcInfo *info, int level, vector <int> &n_samples) {
 }
 
 void mlmc_test(MlmcInfo *info, int test_level, int n_sample, const char *file_name) {
-    cout.precision(2);
-    cout << " l  aveZ      aveP      varZ      varP      kurt\n";
-    cout << "----------------------------------------------------\n";
+    cout << " l  aveZ       aveP       varZ       varP       kurt\n";
+    cout << "---------------------------------------------------------\n";
 
     ofstream ofs(file_name, ios::out);
-    ofs << " l  aveZ      aveP      varZ      varP      kurt\n";
-    ofs << "----------------------------------------------------\n";
+    ofs << " l  aveZ       aveP       varZ       varP       kurt\n";
+    ofs << "---------------------------------------------------------\n";
 
     vector <int> n_samples(test_level + 1, n_sample);
     vector <double> aveZ(test_level + 1), varZ(test_level + 1);
@@ -113,11 +112,11 @@ void mlmc_test(MlmcInfo *info, int test_level, int n_sample, const char *file_na
         varZ[l] = info->layer[l].varZ;
 
         cout << right << setw(2) << l << "  ";
-        cout << scientific << aveZ[l] << "  " << info->layer[l].aveP << "  ";
+        cout << scientific << setprecision(3) << aveZ[l] << "  " << info->layer[l].aveP << "  ";
         cout << varZ[l] << "  " << info->layer[l].varP << "  " << info->layer[l].kurt << '\n';
 
         ofs << right << setw(2) << l << "  ";
-        ofs << scientific << aveZ[l] << "  " << info->layer[l].aveP << "  ";
+        ofs << scientific << setprecision(3) << aveZ[l] << "  " << info->layer[l].aveP << "  ";
         ofs << varZ[l] << "  " << info->layer[l].varP << "  " << info->layer[l].kurt << '\n';
     }
 
@@ -193,12 +192,12 @@ void mlmc_eval_eps(MlmcInfo *info, int level, double eps) {
 }
 
 void mlmc_test_eval_eps(MlmcInfo *info, vector <double> &eps, const char *file_name) {
-    cout << "eps       value     mlmc      std       save    N...\n";
-    cout << "----------------------------------------------------------------\n";
+    cout << "eps        value      mlmc       std        save         N...\n";
+    cout << "------------------------------------------------------------------\n";
 
     ofstream ofs(file_name, ios::app);
-    ofs << "eps       value     mlmc      std       save    N...\n";
-    ofs << "----------------------------------------------------------------\n";
+    ofs << "eps        value      mlmc       std        save         N...\n";
+    ofs << "------------------------------------------------------------------\n";
 
     for (int i = 0; i < (int)eps.size(); i++) {
         for (int l = 0; l <= info->max_level; l++) {
@@ -217,17 +216,17 @@ void mlmc_test_eval_eps(MlmcInfo *info, vector <double> &eps, const char *file_n
         for (int l = 0; l <= level; l++) mlmc_cost += info->layer[l].n * info->layer[l].cost;
         double std_cost = info->layer[level].varP * info->layer[level].cost / ((1.0 - info->theta) * eps[i] * eps[i]);
 
-        cout << scientific << eps[i] << "  " << info->layer[level].aveP << "  ";
-        cout << scientific << mlmc_cost << "  " << std_cost << "  ";
-        cout << right << setw(4) << fixed << std_cost / mlmc_cost << "  ";
+        cout << scientific << setprecision(3) << eps[i] << "  " << info->layer[level].aveP << "  ";
+        cout << scientific << setprecision(3) << mlmc_cost << "  " << std_cost << "  ";
+        cout << fixed << right << setw(6) << std_cost / mlmc_cost << "  ";
 
-        ofs << scientific << eps[i] << "  " << info->layer[level].aveP << "  ";
-        ofs << scientific << mlmc_cost << "  " << std_cost << "  ";
-        ofs << right << setw(4) << fixed << std_cost / mlmc_cost << "  ";
+        ofs << scientific << setprecision(3) << eps[i] << "  " << info->layer[level].aveP << "  ";
+        ofs << scientific << setprecision(3) << mlmc_cost << "  " << std_cost << "  ";
+        ofs << fixed << right << setw(6) << std_cost / mlmc_cost << "  ";
 
         for (int l = 0; l <= level; l++) {
-            cout << info->layer[l].n << ' ';
-            ofs << info->layer[l].n << ' ';
+            cout << fixed << right << setw(9) << info->layer[l].n << ' ';
+            ofs << fixed << right << setw(9) << info->layer[l].n << ' ';
         }
 
         cout << endl;
