@@ -40,7 +40,7 @@ int main() {
     MlmcInfo *info = mlmc_init(m0, s, max_level, 1.0, 0.25);
     mlmc_test(info, test_level, n_sample);
 
-    vector <double> eps = {0.005, 0.002, 0.001, 0.0005, 0.0002, 0.0001};
+    vector <double> eps = {0.002, 0.001, 0.0005, 0.0002, 0.0001};
     mlmc_test_eval_eps(info, eps);
 
     return 0;
