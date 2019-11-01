@@ -15,6 +15,6 @@ struct Matrix {
 };
 
 Matrix Cholesky(Matrix &A);
-vector<double> rand_multinormal(vector<double> &u, Matrix &sigma_cholesky);
+vector<double> rand_multinormal(vector<double> &u, Matrix &sigma_cholesky, vector<double> &pre);
 
 #endif
