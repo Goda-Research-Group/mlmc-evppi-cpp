@@ -212,15 +212,20 @@ void mlmc_test_eval_eps(MlmcInfo *info, vector <double> &eps, const char *file_n
             if (info->layer[level + 1].n == 0) break;
         }
 
+        double value = 0.0;
+        for (int l = 0; l <= level; l++) {
+            value += info->layer[l].aveZ;
+        }
+
         double mlmc_cost = 0.0;
         for (int l = 0; l <= level; l++) mlmc_cost += info->layer[l].n * info->layer[l].cost;
         double std_cost = info->layer[level].varP * info->layer[level].cost / ((1.0 - info->theta) * eps[i] * eps[i]);
 
-        cout << scientific << setprecision(3) << eps[i] << "  " << info->layer[level].aveP << "  ";
+        cout << scientific << setprecision(3) << eps[i] << "  " << value << "  ";
         cout << scientific << setprecision(3) << mlmc_cost << "  " << std_cost << "  ";
         cout << fixed << right << setw(6) << std_cost / mlmc_cost << "  ";
 
-        ofs << scientific << setprecision(3) << eps[i] << "  " << info->layer[level].aveP << "  ";
+        ofs << scientific << setprecision(3) << eps[i] << "  " << value << "  ";
         ofs << scientific << setprecision(3) << mlmc_cost << "  " << std_cost << "  ";
         ofs << fixed << right << setw(6) << std_cost / mlmc_cost << "  ";
 
