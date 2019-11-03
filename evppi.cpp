@@ -37,7 +37,12 @@ void evppi_calc(EvppiInfo *info, Result *result) {
     result->p1 += p;
     result->p2 += p * p;
 
-    if (info->level) {
+    if (info->level == 0) {
+        result->z1 += p;
+        result->z2 += p * p;
+        result->z3 += p * p * p;
+        result->z4 += p * p * p * p;
+    } else {
         vector <double> sum(info->model_num);
         vector <double> sum_a(info->model_num), sum_b(info->model_num);
         for (int m = 0; m < info->m / 2; m++) {
