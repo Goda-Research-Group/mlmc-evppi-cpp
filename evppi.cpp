@@ -133,11 +133,8 @@ void mlmc_test(MlmcInfo *info, int test_level, int n_sample, const char *file_na
     ofs.close();
 }
 
-void mlmc_eval_eps(MlmcInfo *info, int level, double eps) {
+void mlmc_eval_eps(MlmcInfo *info, int level, double eps, vector <int> &n_samples) {
     bool converged = false;
-    vector <int> n_samples(info->max_level + 1);
-    for (int l = 0; l <= level; l++) n_samples[l] = 1000;
-
     while (!converged) {
         mlmc_calc(info, level, n_samples);
 
@@ -199,14 +196,17 @@ void mlmc_test_eval_eps(MlmcInfo *info, vector <double> &eps, const char *file_n
     ofs << "eps        value      mlmc       std        save         N...\n";
     ofs << "------------------------------------------------------------------\n";
 
-    for (int i = 0; i < (int)eps.size(); i++) {
-        for (int l = 0; l <= info->max_level; l++) {
-            info->layer[l].n = 0;
-            info->layer[l].result = result_init();
-        }
+    for (int l = 0; l <= info->max_level; l++) {
+        info->layer[l].n = 0;
+        info->layer[l].result = result_init();
+    }
 
-        int level = 2;
-        mlmc_eval_eps(info, level, eps[i]);
+    int level = 2;
+    vector <int> n_samples(info->max_level + 1);
+    for (int l = 0; l <= level; l++) n_samples[l] = 1000;
+
+    for (int i = 0; i < (int)eps.size(); i++) {
+        mlmc_eval_eps(info, level, eps[i], n_samples);
 
         for (; level < info->max_level; level++) {
             if (info->layer[level + 1].n == 0) break;
@@ -236,6 +236,8 @@ void mlmc_test_eval_eps(MlmcInfo *info, vector <double> &eps, const char *file_n
 
         cout << endl;
         ofs << endl;
+
+        fill(n_samples.begin(), n_samples.end(), 0);
     }
 
     ofs.close();
