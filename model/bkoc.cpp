@@ -6,8 +6,6 @@
 
 using namespace std;
 
-const double INF = 1e31;
-
 random_device rd;
 mt19937 generator(rd());
 
@@ -20,9 +18,10 @@ int lambda = 10000;
 
 double rho = 0.6;
 vector <double> u(4);
+vector <double> ran(4);
 Matrix Sigma(4, 4), sigma_cholesky(4, 4);
-vector <double> pre(4);
 
+normal_distribution<double> dist_normal(0.0, 1.0);
 normal_distribution<double> dist1(1000, 1);
 normal_distribution<double> dist2(0.1, 0.02);
 normal_distribution<double> dist3(5.2, 1.0);
@@ -46,29 +45,31 @@ void sampling_init(EvppiInfo *info) {
 }
 
 void pre_sampling(EvppiInfo *info) {
-    fill(pre.begin(), pre.end(), INF);
-    vector <double> r = rand_multinormal(u, sigma_cholesky, pre);
-    info->sample[5] = pre[0] = r[0];
-    info->sample[14] = pre[2] = r[2];
+    ran[0] = dist_normal(generator);
+    ran[2] = dist_normal(generator);
 }
 
 void post_sampling(EvppiInfo *info) {
-    vector <double> r = rand_multinormal(u, sigma_cholesky, pre);
-    info->sample[7] = r[1];
-    info->sample[16] = r[3];
+    ran[1] = dist_normal(generator);
+    ran[3] = dist_normal(generator);
+    vector <double> r = rand_multinormal(u, sigma_cholesky, ran);
 
     info->sample[1] = dist1(generator);
     info->sample[2] = dist2(generator);
     info->sample[3] = dist3(generator);
     info->sample[4] = dist4(generator);
+    info->sample[5] = r[0];
     info->sample[6] = dist6(generator);
+    info->sample[7] = r[1];
     info->sample[8] = dist8(generator);
     info->sample[9] = dist9(generator);
     info->sample[10] = dist10(generator);
     info->sample[11] = dist11(generator);
     info->sample[12] = dist12(generator);
     info->sample[13] = dist13(generator);
+    info->sample[14] = r[2];
     info->sample[15] = dist15(generator);
+    info->sample[16] = r[3];
     info->sample[17] = dist17(generator);
     info->sample[18] = dist18(generator);
     info->sample[19] = dist19(generator);

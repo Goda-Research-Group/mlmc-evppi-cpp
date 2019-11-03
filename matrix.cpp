@@ -1,12 +1,6 @@
 
 #include "matrix.hpp"
 
-random_device _rd;
-mt19937 _generator(_rd());
-normal_distribution<double> dist(0.0, 1.0);
-
-const double INF = 1e30;
-
 Matrix Cholesky(Matrix &A) {
     size_t sz = A.size();
     Matrix Q(sz, sz);
@@ -25,17 +19,10 @@ Matrix Cholesky(Matrix &A) {
     return Q;
 }
 
-vector<double> rand_multinormal(vector<double> &u, Matrix &sigma_cholesky, vector<double> &pre) {
+vector<double> rand_multinormal(vector<double> &u, Matrix &sigma_cholesky, vector<double> &rand) {
     size_t sz = u.size();
-    vector<double> rand(sz);
     vector<double> ret(sz);
     for (size_t i = 0; i < sz; i++) {
-        if (pre[i] < INF) {
-            rand[i] = pre[i];
-        } else {
-            rand[i] = dist(_generator);
-        }
-
         for (size_t j = 0; j <= i; j++)
             ret[i] += sigma_cholesky[i][j] * rand[j];
         ret[i] += u[i];
