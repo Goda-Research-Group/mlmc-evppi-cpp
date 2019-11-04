@@ -138,32 +138,26 @@ void mlmc_test(MlmcInfo *info, int test_level, int n_sample, const char *file_na
     ofs.close();
 }
 
-void simple_test(EvppiInfo *info, int n, int m) {
-    cout << "standard Monte Carlo\n";
-    cout << "outer = " << n << ", inner = " << m;
-
-    double sum_of_max = 0.0, max_of_sum = 0.0;
+void smc_evpi_calc(EvppiInfo *info, int n) {
+    double sum_of_max = 0.0;
+    vector <double> sum(info->model_num);
     for (int i = 0; i < n; i++) {
         pre_sampling(info);
-        vector <double> sum(info->model_num);
-        for (int j = 0; j < m; j++) {
-            post_sampling(info);
-            f(info);
-            double mx = -1e30;
-            for (int k = 0; k < info->model_num; k++) {
-                mx = max(mx, info->val[k]);
-                sum[k] += info->val[k];
-            }
-            sum_of_max += mx;
+        post_sampling(info);
+        f(info);
+        double mx = -1e30;
+        for (int j = 0; j < info->model_num; j++) {
+            mx = max(mx, info->val[j]);
+            sum[j] += info->val[j];
         }
-        max_of_sum += *max_element(sum.begin(), sum.end()) / (double)m;
+        sum_of_max += mx;
     }
 
-    sum_of_max /= (double)n * (double)m;
-    max_of_sum /= (double)n;
+    sum_of_max /= (double)n;
+    double max_of_sum = *max_element(sum.begin(), sum.end()) / (double)n;
 
     cout << scientific << setprecision(3);
-    cout << ", value = " << sum_of_max - max_of_sum << '\n' << endl;
+    cout << "EVPI = " << sum_of_max - max_of_sum << '\n' << endl;
 }
 
 void mlmc_eval_eps(MlmcInfo *info, int level, double eps, vector <int> &n_samples) {

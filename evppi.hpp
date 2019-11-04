@@ -41,7 +41,7 @@ void pre_sampling(EvppiInfo *info);
 void post_sampling(EvppiInfo *info);
 void f(EvppiInfo *info);
 
-void simple_test(EvppiInfo *info, int n, int m);
+void smc_evpi_calc(EvppiInfo *info, int n);
 
 void mlmc_test(MlmcInfo *info, int test_level, int n_sample, const char *file_name = "output.txt");
 void mlmc_test_eval_eps(MlmcInfo *info, vector <double> &eps, const char *file_name = "output.txt");
