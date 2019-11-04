@@ -17,10 +17,12 @@ typedef struct {
 typedef struct {
     double p1, p2;
     double z1, z2, z3, z4;
+    clock_t time;
 } Result;
 
 typedef struct {
     int n; // outer loop の回数
+    clock_t time;
     double cost;
     double aveZ, aveP, varZ, varP, kurt;
     EvppiInfo *evppi_info;

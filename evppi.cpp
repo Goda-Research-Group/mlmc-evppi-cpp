@@ -79,14 +79,18 @@ void evppi_calc(EvppiInfo *info, Result *result) {
 
 void mlmc_calc(MlmcInfo *info, int level, vector <int> &n_samples) {
     for (int l = 0; l <= level; l++) {
+        clock_t start_time = clock();
         for (int i = 0; i < n_samples[l]; i++) {
             evppi_calc(info->layer[l].evppi_info, info->layer[l].result);
         }
+        clock_t end_time = clock();
 
         info->layer[l].n += n_samples[l];
         double n = (double)info->layer[l].n;
 
         Result *result = info->layer[l].result;
+        result->time += end_time - start_time;
+        info->layer[l].time = result->time / n;
         info->layer[l].aveP = result->p1 / n;
         info->layer[l].aveZ = result->z1 / n;
         info->layer[l].varP = result->p2 / n - info->layer[l].aveP * info->layer[l].aveP;
@@ -127,14 +131,17 @@ void mlmc_test(MlmcInfo *info, int test_level, int n_sample, const char *file_na
 
     info->alpha = log2_regression(aveZ);
     info->beta = log2_regression(varZ);
+    info->gamma = log2((double)info->layer[test_level].time / (double)info->layer[test_level - 1].time);
 
     cout << fixed << '\n';
     cout << "alpha = " << info->alpha << '\n';
-    cout << "beta  = " << info->beta << '\n' << endl;
+    cout << "beta  = " << info->beta  << '\n';
+    cout << "gamma = " << info->gamma << '\n' << endl;
 
     ofs << fixed << '\n';
     ofs << "alpha = " << info->alpha << '\n';
-    ofs << "beta  = " << info->beta << '\n' << endl;
+    ofs << "beta  = " << info->beta  << '\n';
+    ofs << "gamma = " << info->gamma << '\n' << endl;
     ofs.close();
 }
 
@@ -282,6 +289,7 @@ Result *result_init() {
     Result *result = new Result;
     result->p1 = result->p2 = 0;
     result->z1 = result->z2 = result->z3 = result->z4 = 0;
+    result->time = 0;
     return result;
 }
 
@@ -294,6 +302,7 @@ MlmcInfo *mlmc_init(int m0, int s, int max_level, double gamma, double theta) {
     info->layer.resize(max_level + 1);
     for (int l = 0; l <= max_level; l++) {
         info->layer[l].n = 0;
+        info->layer[l].time = 0;
         info->layer[l].cost = pow(2.0, l * gamma);
         info->layer[l].aveZ = 0.0;
         info->layer[l].aveP = 0.0;
