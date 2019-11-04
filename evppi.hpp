@@ -24,7 +24,7 @@ typedef struct {
     int n; // outer loop の回数
     clock_t time;
     double cost;
-    double aveZ, aveP, varZ, varP, kurt;
+    double aveZ, aveP, varZ, varP, kurt, check;
     EvppiInfo *evppi_info;
     Result *result;
 } MlmcLayerInfo;

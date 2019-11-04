@@ -100,17 +100,21 @@ void mlmc_calc(MlmcInfo *info, int level, vector <int> &n_samples) {
                     ((result->z4 / n - 4 * result->z3 / n * info->layer[l].aveZ + 6 * result->z2 / n * info->layer[l].aveZ * info->layer[l].aveZ -
                       3 * info->layer[l].aveZ * info->layer[l].aveZ * info->layer[l].aveZ * info->layer[l].aveZ) /
                      ((result->z2 / n - info->layer[l].aveZ * info->layer[l].aveZ) * (result->z2 / n - info->layer[l].aveZ * info->layer[l].aveZ)));
+            info->layer[l].check =
+                    abs(info->layer[l].aveZ + info->layer[l - 1].aveP - info->layer[l].aveP) /
+                    (3.0 * (sqrt(info->layer[l].varZ) + sqrt(info->layer[l - 1].varP) + sqrt(info->layer[l].varP)) / sqrt(n));
+
         }
     }
 }
 
 void mlmc_test(MlmcInfo *info, int test_level, int n_sample, const char *file_name) {
-    cout << " l  aveZ       aveP       varZ       varP       kurt\n";
-    cout << "---------------------------------------------------------\n";
+    cout << " l  aveZ       aveP       varZ       varP       kurt       check\n";
+    cout << "--------------------------------------------------------------------\n";
 
     ofstream ofs(file_name, ios::out);
-    ofs << " l  aveZ       aveP       varZ       varP       kurt\n";
-    ofs << "---------------------------------------------------------\n";
+    ofs << " l  aveZ       aveP       varZ       varP       kurt       check\n";
+    ofs << "--------------------------------------------------------------------\n";
 
     vector <int> n_samples(test_level + 1, n_sample);
     vector <double> aveZ(test_level + 1), varZ(test_level + 1);
@@ -122,11 +126,11 @@ void mlmc_test(MlmcInfo *info, int test_level, int n_sample, const char *file_na
 
         cout << right << setw(2) << l << "  ";
         cout << scientific << setprecision(3) << aveZ[l] << "  " << info->layer[l].aveP << "  ";
-        cout << varZ[l] << "  " << info->layer[l].varP << "  " << info->layer[l].kurt << '\n';
+        cout << varZ[l] << "  " << info->layer[l].varP << "  " << info->layer[l].kurt << "  " << info->layer[l].check << '\n';
 
         ofs << right << setw(2) << l << "  ";
         ofs << scientific << setprecision(3) << aveZ[l] << "  " << info->layer[l].aveP << "  ";
-        ofs << varZ[l] << "  " << info->layer[l].varP << "  " << info->layer[l].kurt << '\n';
+        ofs << varZ[l] << "  " << info->layer[l].varP << "  " << info->layer[l].kurt << "  " << info->layer[l].check << '\n';
     }
 
     info->alpha = log2_regression(aveZ);
@@ -309,6 +313,7 @@ MlmcInfo *mlmc_init(int m0, int s, int max_level, double gamma, double theta) {
         info->layer[l].varZ = 0.0;
         info->layer[l].varP = 0.0;
         info->layer[l].kurt = 0.0;
+        info->layer[l].check = 0.0;
         info->layer[l].evppi_info = evppi_init(l, m0);
         info->layer[l].result = result_init();
         m0 *= s;
