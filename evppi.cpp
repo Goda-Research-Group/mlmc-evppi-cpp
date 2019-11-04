@@ -15,59 +15,70 @@ Result *result_init();
 void evppi_calc(EvppiInfo *info, Result *result) {
     pre_sampling(info);
 
-    vector <double> sum(info->model_num);
     double sum_of_max = 0.0;
-    for (int m = 0; m < info->m; m++) {
-        post_sampling(info);
-
-        f(info);
-        double mx = -1e30;
-        for (int i = 0; i < info->model_num; i++) {
-            mx = max(mx, info->val[i]);
-            sum[i] += info->val[i];
-        }
-        sum_of_max += mx;
-    }
-
-    double M = (double)(info->m);
-    sum_of_max /= M;
-    double max_of_sum = *max_element(sum.begin(), sum.end()) / M;
-
-    double p = sum_of_max - max_of_sum;
-    result->p1 += p;
-    result->p2 += p * p;
+    vector <double> sum(info->model_num);
 
     if (info->level == 0) {
+        for (int m = 0; m < info->m; m++) {
+            post_sampling(info);
+            f(info);
+
+            double mx = -1e30;
+            for (int i = 0; i < info->model_num; i++) {
+                mx = max(mx, info->val[i]);
+                sum[i] += info->val[i];
+            }
+            sum_of_max += mx;
+        }
+
+        double M = (double)(info->m);
+        sum_of_max /= M;
+        double max_of_sum = *max_element(sum.begin(), sum.end()) / M;
+
+        double p = sum_of_max - max_of_sum;
+        result->p1 += p;
+        result->p2 += p * p;
         result->z1 += p;
         result->z2 += p * p;
         result->z3 += p * p * p;
         result->z4 += p * p * p * p;
     } else {
-        vector <double> sum(info->model_num);
         vector <double> sum_a(info->model_num), sum_b(info->model_num);
+
         for (int m = 0; m < info->m / 2; m++) {
             post_sampling(info);
-
             f(info);
+
+            double mx = -1e30;
             for (int i = 0; i < info->model_num; i++) {
+                mx = max(mx, info->val[i]);
                 sum[i] += info->val[i];
                 sum_a[i] += info->val[i];
             }
+            sum_of_max += mx;
         }
 
         for (int m = info->m / 2; m < info->m; m++) {
             post_sampling(info);
-
             f(info);
+
+            double mx = -1e30;
             for (int i = 0; i < info->model_num; i++) {
+                mx = max(mx, info->val[i]);
                 sum[i] += info->val[i];
                 sum_b[i] += info->val[i];
             }
+            sum_of_max += mx;
         }
 
+        sum_of_max /= (double)(info->m);
         double max_of_sum = *max_element(sum.begin(), sum.end()) / (double)(info->m);
         double max_of_sum_a = *max_element(sum_a.begin(), sum_a.end()) / (double)(info->m / 2);
         double max_of_sum_b = *max_element(sum_b.begin(), sum_b.end()) / (double)(info->m - info->m / 2);
+
+        double p = sum_of_max - max_of_sum;
+        result->p1 += p;
+        result->p2 += p * p;
 
         double z = (max_of_sum_a + max_of_sum_b) / 2.0 - max_of_sum;
         result->z1 += z;
