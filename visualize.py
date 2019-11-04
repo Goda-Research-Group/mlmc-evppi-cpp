@@ -31,7 +31,7 @@ with open('./model/output.txt', 'r') as f:
             f.readline()
         elif line[0] == 'eps':
             f.readline()
-        elif line[0] == '' or line[0] == 'alpha' or line[0] == 'beta':
+        elif line[0] == '' or line[0] == 'alpha' or line[0] == 'beta' or line[0] == 'gamma' or line[0] == 'EVPI':
             test = False
         else:
             if test:
