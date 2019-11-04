@@ -138,6 +138,38 @@ void mlmc_test(MlmcInfo *info, int test_level, int n_sample, const char *file_na
     ofs.close();
 }
 
+void simple_test(EvppiInfo *info, int n, int m) {
+    cout << "simple test\n";
+    cout << "outer = " << n << ", inner = " << m << '\n';
+
+    double sum_of_max = 0.0;
+    for (int i = 0; i < n; i++) {
+        pre_sampling(info);
+        post_sampling(info);
+        f(info);
+        sum_of_max += *max_element(info->val.begin(), info->val.end());
+    }
+    double evpi = sum_of_max / (double)n;
+
+    sum_of_max = 0.0;
+    for (int i = 0; i < n; i++) {
+        pre_sampling(info);
+        vector <double> sum(info->model_num);
+        for (int j = 0; j < m; j++) {
+            post_sampling(info);
+            f(info);
+            for (int k = 0; k < info->model_num; k++) {
+                sum[k] += info->val[k];
+            }
+        }
+        sum_of_max += *max_element(sum.begin(), sum.end()) / (double)m;
+    }
+    double evppi = sum_of_max / (double)n;
+
+    cout << scientific << setprecision(3);
+    cout << "simple value = " << evpi - evppi << '\n' << endl;
+}
+
 void mlmc_eval_eps(MlmcInfo *info, int level, double eps, vector <int> &n_samples) {
     bool converged = false;
     while (!converged) {

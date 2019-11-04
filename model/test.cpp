@@ -40,6 +40,8 @@ int main() {
     MlmcInfo *info = mlmc_init(m0, s, max_level, 1.0, 0.25);
     mlmc_test(info, test_level, n_sample);
 
+    // simple_test(info->layer[0].evppi_info, 10000, 1000);
+
     vector <double> eps = {0.002, 0.001, 0.0005, 0.0002, 0.0001};
     mlmc_test_eval_eps(info, eps);
 
