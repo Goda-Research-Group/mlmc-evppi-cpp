@@ -91,13 +91,10 @@ Matrix Inverse(Matrix &A) {
     return inv;
 }
 
-vector<double> rand_multinormal(vector<double> &u, Matrix &sigma_cholesky, vector<double> &rand) {
-    int sz = u.size();
-    vector<double> ret(sz);
-    for (int i = 0; i < sz; i++) {
+void rand_multinormal(vector<double> &u, Matrix &sigma_cholesky, vector<double> &rand, vector<double> &ret) {
+    for (int i = 0; i < (int)u.size(); i++) {
         for (int j = 0; j <= i; j++)
             ret[i] += sigma_cholesky[i][j] * rand[j];
         ret[i] += u[i];
     }
-    return ret;
 }

@@ -18,6 +18,6 @@ Matrix operator - (Matrix &A, Matrix &B);
 Matrix operator * (Matrix &A, Matrix &B);
 Matrix Cholesky(Matrix &A);
 Matrix Inverse(Matrix &A);
-vector<double> rand_multinormal(vector<double> &u, Matrix &sigma_cholesky, vector<double> &rand);
+void rand_multinormal(vector<double> &u, Matrix &sigma_cholesky, vector<double> &rand, vector<double> &ret);
 
 #endif
