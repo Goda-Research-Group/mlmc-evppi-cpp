@@ -33,3 +33,16 @@ double log2_regression(vector <double> &y) {
     }
     return regression(x, log2_y);
 }
+
+pair<double, double> beta_param(double m, double var) {
+    double alpha = ((1.0 - m) / var - 1.0 / m) * m * m;
+    double beta = alpha * (1.0 / m - 1.0);
+    return make_pair(alpha, beta);
+}
+
+pair<double, double> log_param(double m, double s) {
+    double log_m = log(m) - 0.5 * log(1 + s * s / (m * m));
+    double log_s2 = log(1 + s * s / (m * m));
+    double log_sigma = sqrt(log_s2);
+    return make_pair(log_m, log_sigma);
+}
