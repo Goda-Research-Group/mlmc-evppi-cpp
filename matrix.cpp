@@ -36,6 +36,24 @@ Matrix operator * (Matrix &A, Matrix &B) {
     return R;
 }
 
+vector <double> operator * (vector <double> &v, Matrix &M) {
+    vector <double> ret(M[0].size());
+    for (int i = 0; i < (int)M[0].size(); i++) {
+        for (int j = 0; j < (int)v.size(); j++) {
+            ret[i] += v[j] * M[j][i];
+        }
+    }
+    return ret;
+}
+
+double operator * (vector <double> &v1, vector <double> &v2) {
+    double ret = 0.0;
+    for (int i = 0; i < (int)v1.size(); i++) {
+        ret += v1[i] * v2[i];
+    }
+    return ret;
+}
+
 Matrix getCoFactor(Matrix &A, const int p, const int q) {
     int sz = A.size();
     Matrix co_factor(sz - 1, sz - 1);

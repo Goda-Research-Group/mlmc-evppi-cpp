@@ -16,6 +16,8 @@ struct Matrix {
 
 Matrix operator - (Matrix &A, Matrix &B);
 Matrix operator * (Matrix &A, Matrix &B);
+vector <double> operator * (vector <double> &v, Matrix &M);
+double operator * (vector <double> &v1, vector <double> &v2);
 Matrix Cholesky(Matrix &A);
 Matrix Inverse(Matrix &A);
 void rand_multinormal(vector<double> &u, Matrix &sigma_cholesky, vector<double> &rand, vector<double> &ret);
