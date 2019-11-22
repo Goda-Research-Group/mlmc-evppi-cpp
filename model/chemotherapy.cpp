@@ -11,7 +11,6 @@ using namespace std;
 random_device rd;
 mt19937 generator(rd());
 
-uniform_real_distribution<double> dist_uni(0.0, 1.0);
 normal_distribution<double> dist_rho(0.65, 0.1);
 lognormal_distribution<double> dist_cost_ambulatory(7.74, 0.039);
 lognormal_distribution<double> dist_cost_hospital(8.77, 0.15);
@@ -53,10 +52,10 @@ void sampling_init(EvppiInfo *info) {
 }
 
 void pre_sampling(EvppiInfo *info) {
-    info->sample[0] = dist_uni(generator);
 }
 
 void post_sampling(EvppiInfo *info) {
+    info->sample[0] = beta(1 + 27, 1 + 111 - 27);
     info->sample[1] = dist_rho(generator);
     info->sample[2] = beta(5.75, 5.75);
     info->sample[3] = beta(0.87, 3.47);
@@ -64,9 +63,9 @@ void post_sampling(EvppiInfo *info) {
     info->sample[5] = dist_cost_ambulatory(generator);
     info->sample[6] = dist_cost_hospital(generator);
     info->sample[7] = dist_cost_death(generator);
-    info->sample[8] = dist_uni(generator);
+    info->sample[8] = beta(1 + 17, 1 + 27 - 17);
     info->sample[9] = beta(5.12, 6.26);
-    info->sample[10] = dist_uni(generator);
+    info->sample[10] = beta(1 + 1, 1 + 17 - 1);
     info->sample[11] = beta(3.63, 6.74);
 }
 
@@ -120,7 +119,7 @@ void f(EvppiInfo *info) {
 
     for (int i = 0; i < 2; i++) {
         info->val[i] =
-                (sum_of_effect[0] + (1.0 - pi) * qaly_of_states[2]) * wtp
+                (sum_of_effect[0] + (1.0 - pi * (i ? rho : 1)) * qaly_of_states[2]) * wtp
                 - (sum_of_cost[i] + cost_of_drug[i]);
     }
 }
