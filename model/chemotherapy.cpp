@@ -1,5 +1,6 @@
 
 #include <iostream>
+#include <iomanip>
 #include <random>
 
 #include "../util.hpp"
@@ -12,15 +13,13 @@ random_device rd;
 mt19937 generator(rd());
 
 normal_distribution<double> dist_rho(0.65, 0.1);
-lognormal_distribution<double> dist_cost_ambulatory(7.74, 0.039);
-lognormal_distribution<double> dist_cost_hospital(8.77, 0.15);
-lognormal_distribution<double> dist_cost_death(8.33, 0.13);
+lognormal_distribution<double> dist_cost_ambulatory(7.74, 0.0391);
+lognormal_distribution<double> dist_cost_hospital(8.77, 0.150);
+lognormal_distribution<double> dist_cost_death(8.33, 0.133);
 
-static double pi, rho;
 vector<double> qaly_of_states(4);
 vector<double> cost_of_states(4);
 Matrix transition(4, 4);
-vector <double> cost_of_drug = {110, 420};
 
 double beta(double alpha, double beta) {
     gamma_distribution<double> dist_gamma1(alpha, 1.0);
@@ -33,9 +32,9 @@ double beta(double alpha, double beta) {
 /*
  * info->sample[0]  : probability of adverse events
  * info->sample[1]  : reduction in adverse events with treatment
- * info->sample[2]  : QoL weight with no adverse events
- * info->sample[3]  : QoL weight for home care (ambulatory)
- * info->sample[4]  : QoL weight for hospitalization
+ * info->sample[2]  : QoL weight for home care (ambulatory)
+ * info->sample[3]  : QoL weight for hospitalization
+ * info->sample[4]  : QoL weight with no adverse events
  * info->sample[5]  : cost of home care (ambulatory)
  * info->sample[6]  : cost of hospitalization
  * info->sample[7]  : cost of death
@@ -52,29 +51,34 @@ void sampling_init(EvppiInfo *info) {
 }
 
 void pre_sampling(EvppiInfo *info) {
+    int N = 1000;
+
+    double pi = beta(28, 85);
+    binomial_distribution<int> dist_side_effect_of_standard(N, pi);
+    info->sample[0] = (double)dist_side_effect_of_standard(generator) / (double)N;
+
+    double rho = dist_rho(generator);
+    binomial_distribution<int> dist_side_effect_of_novel(N, pi * rho);
+    info->sample[1] = (double)dist_side_effect_of_novel(generator) / (double)N;
+
+    info->sample[8] = beta(11, 18);
+    info->sample[9] = beta(5.12, 6.26);
+    info->sample[10] = beta(2, 13);
+    info->sample[11] = beta(3.63, 6.74);
 }
 
 void post_sampling(EvppiInfo *info) {
-    info->sample[0] = beta(1 + 27, 1 + 111 - 27);
-    info->sample[1] = dist_rho(generator);
     info->sample[2] = beta(5.75, 5.75);
-    info->sample[3] = beta(0.87, 3.47);
-    info->sample[4] = beta(18.23, 0.372);
+    info->sample[3] = beta(0.867, 3.47);
+    info->sample[4] = beta(18.2, 0.372);
     info->sample[5] = dist_cost_ambulatory(generator);
     info->sample[6] = dist_cost_hospital(generator);
     info->sample[7] = dist_cost_death(generator);
-    info->sample[8] = beta(1 + 17, 1 + 27 - 17);
-    info->sample[9] = beta(5.12, 6.26);
-    info->sample[10] = beta(1 + 1, 1 + 17 - 1);
-    info->sample[11] = beta(3.63, 6.74);
 }
 
 void f(EvppiInfo *info) {
     int threshold = 15;
     int wtp = 30000;
-
-    pi = info->sample[0];
-    rho = info->sample[1];
 
     qaly_of_states[0] = info->sample[2];
     qaly_of_states[1] = info->sample[3];
@@ -93,11 +97,12 @@ void f(EvppiInfo *info) {
     transition[1][1] = 1.0 - transition[1][2] - transition[1][3];   // stay hospital
 
     vector <vector<double>> init(2);
-    init[0] = {pi, 0.0, 0.0, 0.0};
-    init[1] = {pi * rho, 0.0, 0.0, 0.0};
+    init[0] = {info->sample[0], 0.0, 0.0, 0.0};
+    init[1] = {info->sample[1], 0.0, 0.0, 0.0};
 
     vector<double> sum_of_effect(2);
     for (int i = 0; i < 2; i++) {
+        sum_of_effect[i] += qaly_of_states * init[i];
         for (int j = 0; j < threshold; j++) {
             init[i] = init[i] * transition;
             sum_of_effect[i] += qaly_of_states * init[i];
@@ -105,11 +110,12 @@ void f(EvppiInfo *info) {
         sum_of_effect[i] /= threshold + 1;
     }
 
-    init[0] = {pi, 0.0, 0.0, 0.0};
-    init[1] = {pi * rho, 0.0, 0.0, 0.0};
+    init[0] = {info->sample[0], 0.0, 0.0, 0.0};
+    init[1] = {info->sample[1], 0.0, 0.0, 0.0};
 
     vector<double> sum_of_cost(2);
     for (int i = 0; i < 2; i++) {
+        sum_of_cost[i] += cost_of_states * init[i];
         for (int j = 0; j < threshold; j++) {
             init[i] = init[i] * transition;
             sum_of_cost[i] += cost_of_states * init[i];
@@ -117,9 +123,11 @@ void f(EvppiInfo *info) {
         sum_of_cost[i] /= threshold + 1;
     }
 
+    vector <double> cost_of_drug = {110, 420};
+
     for (int i = 0; i < 2; i++) {
         info->val[i] =
-                (sum_of_effect[0] + (1.0 - pi * (i ? rho : 1)) * qaly_of_states[2]) * wtp
+                (sum_of_effect[i] + (1.0 - info->sample[i]) * qaly_of_states[2]) * wtp
                 - (sum_of_cost[i] + cost_of_drug[i]);
     }
 }
