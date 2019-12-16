@@ -206,7 +206,7 @@ int main() {
     // smc_evpi_calc(info->layer[0].evppi_info, 1000000);
     mlmc_test(info, 10, 2000);
 
-    vector <double> eps = {0.2, 0.1, 0.05, 0.02, 0.01};
+    vector <double> eps = {5, 2, 1, 0.5, 0.2, 0.1};
     mlmc_test_eval_eps(info, eps);
 
     return 0;
