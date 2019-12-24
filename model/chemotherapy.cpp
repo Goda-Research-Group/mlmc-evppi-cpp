@@ -142,8 +142,11 @@ int main() {
     transition[3] = {0.0, 0.0, 0.0, 1.0};
 
     MlmcInfo *info = mlmc_init(1, 2, 20, 1.0, 0.25);
-    smc_evpi_calc(info->layer[0].evppi_info, 100000);
+    // smc_evpi_calc(info->layer[0].evppi_info, 100000); // 3.697e+01
     mlmc_test(info, 10, 2000);
+
+    vector <double> eps = {0.2, 0.1, 0.05, 0.02, 0.01};
+    mlmc_test_eval_eps(info, eps);
 
     return 0;
 }
