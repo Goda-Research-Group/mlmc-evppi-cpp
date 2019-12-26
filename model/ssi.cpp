@@ -11,7 +11,6 @@ using namespace std;
 random_device rd;
 mt19937 generator(rd());
 
-int n_sim = 20000;
 int wtp = 20000;
 double ssi_qaly_loss = 0.12;
 vector <double> dressing_cost(4);
@@ -70,12 +69,6 @@ void f(EvppiInfo *info) {
     info->val[3] = -dressing_cost[3] - info->sample[3] * (info->sample[4] + ssi_qaly_loss * wtp);
 }
 
-// params for mlmc
-int m0 = 1;
-int s = 2;
-int max_level = 20;
-int test_level = 10;
-
 int main() {
     dressing_cost = {0.0, 5.25, 13.86, 21.39};
 
@@ -93,12 +86,11 @@ int main() {
 
     sigma = Cholesky(sigma);
 
-    MlmcInfo *info = mlmc_init(m0, s, max_level, 1.0, 0.25);
-    mlmc_test(info, test_level, n_sim);
+    MlmcInfo *info = mlmc_init(1, 2, 20, 1.0, 0.25);
+    smc_evpi_calc(info->layer[0].evppi_info, 10000000);
+    mlmc_test(info, 10, 20000);
 
-    // smc_evpi_calc(info->layer[0].evppi_info, 10000000);
-
-    vector <double> eps = {0.0002, 0.0001, 0.00005, 0.00001, 0.00002};
+    vector <double> eps = {0.0005, 0.0002, 0.0001, 0.00005, 0.00002, 0.00001};
     mlmc_test_eval_eps(info, eps);
 
     return 0;
