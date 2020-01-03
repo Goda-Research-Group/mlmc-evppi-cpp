@@ -35,10 +35,10 @@ with open('./model/output.txt', 'r') as f:
             test = False
         else:
             if test:
-                aveP[test_level] = float(line[1])
-                aveZ[test_level] = float(line[2])
-                varP[test_level] = float(line[3])
-                varZ[test_level] = float(line[4])
+                aveZ[test_level] = float(line[1])
+                aveP[test_level] = float(line[2])
+                varZ[test_level] = float(line[3])
+                varP[test_level] = float(line[4])
                 kurt[test_level] = float(line[5])
                 test_level += 1
             else:
