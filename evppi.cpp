@@ -101,6 +101,7 @@ void mlmc_calc(MlmcInfo *info, int level, vector <int> &n_samples) {
         clock_t end_time = clock();
 
         info->layer[l].n += n_samples[l];
+        n_samples[l] = 0;
         double n = (double)info->layer[l].n;
 
         Result *result = info->layer[l].result;
