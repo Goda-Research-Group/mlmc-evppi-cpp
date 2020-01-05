@@ -115,8 +115,6 @@ def mlmc_calc(level):
     global varZ
     global varP
     global result
-    global alpha
-    global beta
     global kurt
 
     for l in range(level + 1):
@@ -134,6 +132,7 @@ def mlmc_calc(level):
         if l > 0:
             kurt[l] = (result[l][5] / n - 4 * result[l][4] / n * aveZ[l] + 6 * result[l][3] / n * aveZ[l] ** 2 - 3 * aveZ[l] ** 4) / varZ[l] ** 2
 
+
 def mlmc_test():
     global n_samples
     global n_samples_done
@@ -142,9 +141,15 @@ def mlmc_test():
     global varZ
     global varP
     global kurt
+    global alpha
+    global beta
 
     print('l aveZ aveP varZ varP kurt check')
     print('-----------------------------')
+
+    with open('./output.txt', 'w') as f:
+        f.write('l aveZ aveP varZ varP kurt check\n')
+        f.write('-----------------------------\n')
 
     aveZ = np.zeros(30)
     aveP = np.zeros(30)
@@ -158,17 +163,26 @@ def mlmc_test():
         result = np.zeros((30, 6))
         mlmc_calc(l)
         print(str(l) + ' ' + str(aveZ[l]) + ' ' + str(aveP[l]) + ' ' + str(varZ[l]) + ' ' + str(varP[l]) + ' ' + str(kurt[l]))
+        with open('./output.txt', 'a') as f:
+            f.write(str(l) + ' ' + str(aveZ[l]) + ' ' + str(aveP[l]) + ' ' + str(varZ[l]) + ' ' + str(varP[l]) + ' ' + str(kurt[l]) + '\n')
 
     alpha = log2_regression(aveZ, 10)
     beta = log2_regression(varZ, 10)
     print('alpha = ' + str(alpha))
     print('beta = ' + str(beta))
 
+    with open('./output.txt', 'a') as f:
+        f.write('\n')
+        f.write('alpha = ' + str(alpha) + '\n')
+        f.write('beta  = ' + str(beta) + '\n\n')
+
 def eval_eps(e, level):
     global n_samples
     global n_samples_done
     global aveZ
     global varZ
+    global alpha
+    global beta
 
     cost = np.array([pow(2, l) for l in range(30)])
     converged = False
@@ -221,6 +235,10 @@ def eps_test(eps):
     print("eps value mlmc std save N...")
     print("------------------------------------------------------------------")
 
+    with open('./output.txt', 'a') as f:
+        f.write('eps value mlmc std save N...\n')
+        f.write('-----------------------------\n')
+
     n_samples = np.array([1000 if level < 3 else 0 for level in range(30)])
     n_samples_done = np.zeros(30)
     result = np.zeros((30, 6))
@@ -245,6 +263,12 @@ def eps_test(eps):
         for l in range(level + 1):
             print(int(n_samples_done[l]), end = ' ')
         print('')
+
+        with open('./output.txt', 'a') as f:
+            f.write(str(e) + ' ' + str(value) + ' ' + str(mlmc_cost) + ' '+ str(std_cost) + ' ' + str(std_cost / mlmc_cost) + ' ')
+            for l in range(level + 1):
+                f.write(str(int(n_samples_done[l])) + ' ')
+            f.write('\n')
 
 if __name__ == '__main__':
     mlmc_test()
