@@ -87,7 +87,7 @@ int main() {
     sigma = Cholesky(sigma);
 
     MlmcInfo *info = mlmc_init(1, 2, 20, 1.0, 0.25);
-    smc_evpi_calc(info->layer[0].evppi_info, 10000000);
+    // smc_evpi_calc(info->layer[0].evppi_info, 10000000);
     mlmc_test(info, 10, 20000);
 
     vector <double> eps = {0.0005, 0.0002, 0.0001, 0.00005, 0.00002, 0.00001};
