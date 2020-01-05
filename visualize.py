@@ -17,7 +17,7 @@ N_level = np.empty(10)
 N = np.empty((10, 30))
 
 dir = sys.argv[1]
-with open('./' + dir + '/output.txt', 'r') as f:
+with open('./' + dir + '/_output.txt', 'r') as f:
     line = f.readline()
     test = True
 
