@@ -514,7 +514,7 @@ def mlmc_test():
     varZ = np.zeros(30)
     varP = np.zeros(30)
     kurt = np.zeros(30)
-    n_samples = np.ones(30) * 2000
+    n_samples = np.ones(30) * 100
     n_samples_done = np.zeros(30)
 
     for l in range(11):
