@@ -1,4 +1,4 @@
-
+import sys
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -16,7 +16,8 @@ std = np.empty(30)
 N_level = np.empty(10)
 N = np.empty((10, 30))
 
-with open('./model/output.txt', 'r') as f:
+dir = sys.argv[1]
+with open('./' + dir + '/output.txt', 'r') as f:
     line = f.readline()
     test = True
 
