@@ -21,8 +21,8 @@ lambda_g_cov = np.array([
     [-0.001027128, 0.0002115364]
 ])
 discount = [1 / (1.03 ** x) for x in range(51)]
-p_screen               = np.array([1 if x % 10 == 0 and x < 90         else 0 for x in range(50, 100)])
-p_surveillance_lr  = np.array([1 if x % 5 == 0 and x < 90            else 0 for x in range(50, 100)])
+p_screen          = np.array([1 if x % 10 == 0       and x < 90 else 0 for x in range(50, 100)])
+p_surveillance_lr = np.array([1 if x % 5 == 0        and x < 90 else 0 for x in range(50, 100)])
 p_surveillance_hr = np.array([1 if (x - 50) % 3 == 0 and x < 86 else 0 for x in range(50, 100)])
 
 def pre_sampling(params):
@@ -31,22 +31,22 @@ def pre_sampling(params):
     return params
 
 def post_sampling(params, m):
-    params[2] = np.exp(np.random.normal(-3.4538776, 0.58739416, m)) # lambda2
-    params[3] = np.exp(np.random.normal(-3.9120230, 0.35364652, m)) # lambda3
-    params[4] = np.exp(np.random.normal(-1.1512925, 0.23374764, m)) # lambda4
-    params[5] = np.exp(np.random.normal(-1.4067054, 0.10343498, m)) # lambda5
-    params[6] = np.exp(np.random.normal(-0.7803239, 0.21614741, m)) # lambda6
-    params[8] = np.random.beta(6.132642, 2.504882, m) # prop adenoma sm
-    params[9] = np.random.beta(373.5, 110.2, m)  # sens of small adenoma
-    params[10] = np.random.beta(2475, 378, m) # spec of small adenoma
-    params[11] = np.random.beta(59.3, 1.2, m) # sens of large adenoma
-    params[12] = np.random.beta(2475, 378, m) # spec of large adenoma
-    params[13] = np.exp(np.random.normal(0.6931472, 0.2802582, m)) # hazard ratio for low risk
-    params[14] = np.exp(np.random.normal(1.098612, 0.1768233, m)) # hazard ratio for high risk
-    params[15] = 1 - np.exp(np.random.normal(-4.60517, 1.351612, m)) # utility of normal
-    params[16] = 1 - np.exp(np.random.normal(-1.931022, 0.2802582, m)) # utility of clinical crc early
-    params[17] = 1 - np.exp(np.random.normal(-0.3566749, 0.103435, m)) # utility of clinical crc late
-    params[18] = np.exp(np.random.normal(9.21034, 0.0511915, m)) # cost of colonoscopy
+    params[2] = np.exp(np.random.normal(-3.4538776, 0.58739416, m))         # lambda2
+    params[3] = np.exp(np.random.normal(-3.9120230, 0.35364652, m))         # lambda3
+    params[4] = np.exp(np.random.normal(-1.1512925, 0.23374764, m))         # lambda4
+    params[5] = np.exp(np.random.normal(-1.4067054, 0.10343498, m))         # lambda5
+    params[6] = np.exp(np.random.normal(-0.7803239, 0.21614741, m))         # lambda6
+    params[8] = np.random.beta(6.132642, 2.504882, m)                       # prop adenoma sm
+    params[9] = np.random.beta(373.5, 110.2, m)                             # sens of small adenoma
+    params[10] = np.random.beta(2475, 378, m)                               # spec of small adenoma
+    params[11] = np.random.beta(59.3, 1.2, m)                               # sens of large adenoma
+    params[12] = np.random.beta(2475, 378, m)                               # spec of large adenoma
+    params[13] = np.exp(np.random.normal(0.6931472, 0.2802582, m))          # hazard ratio for low risk
+    params[14] = np.exp(np.random.normal(1.098612, 0.1768233, m))           # hazard ratio for high risk
+    params[15] = 1 - np.exp(np.random.normal(-4.60517, 1.351612, m))        # utility of normal
+    params[16] = 1 - np.exp(np.random.normal(-1.931022, 0.2802582, m))      # utility of clinical crc early
+    params[17] = 1 - np.exp(np.random.normal(-0.3566749, 0.103435, m))      # utility of clinical crc late
+    params[18] = np.exp(np.random.normal(9.21034, 0.0511915, m))            # cost of colonoscopy
     params[19] = np.exp(np.random.normal(9.976924, 0.03565356, m)) * 1.2356 # cost of cancer early
     params[20] = np.exp(np.random.normal(10.51867, 0.02760551, m)) * 1.2356 # cost of cancer late
     return params
@@ -93,11 +93,11 @@ def crc_nhm_tp(params):
         transition[:, :, i] = expm(transition[:, :, i])
 
     # check
-    for i in range(50):
-        for j in range(9):
-            if abs(1 - np.sum(transition[j, :, i])) > 1e-8:
-                print('crc_nhm_tp matrix is not valid')
-                exit()
+    # for i in range(50):
+    #     for j in range(9):
+    #         if abs(1 - np.sum(transition[j, :, i])) > 1e-8:
+    #             print('crc_nhm_tp matrix is not valid')
+    #             exit()
 
     return transition
 
@@ -140,11 +140,11 @@ def crc_nhm_hist_tp(params, hist):
         transition[:, :, i] = expm(transition[:, :, i])
 
     # check
-    for i in range(50):
-        for j in range(9):
-            if abs(1 - np.sum(transition[j, :, i])) > 1e-8:
-                print('crc_nhm_hist_tp matrix is not valid')
-                exit()
+    # for i in range(50):
+    #     for j in range(9):
+    #         if abs(1 - np.sum(transition[j, :, i])) > 1e-8:
+    #             print('crc_nhm_hist_tp matrix is not valid')
+    #             exit()
 
     return transition
 
@@ -153,14 +153,12 @@ def crc_screening_tp(params, scr):
     surveillance_lr = p_surveillance_lr * scr
     surveillance_hr = p_surveillance_hr * scr
 
-    true_pos = params[9] # sens COL
-    false_neg = 1 - params[9] # sens COL
-    true_neg = params[10] # spec COL
-    false_pos = 1 - params[10] # spec COL
-    true_pos_crc = params[11] # sens col crc
+    true_pos = params[9]           # sens COL
+    false_neg = 1 - params[9]      # sens COL
+    true_neg = params[10]          # spec COL
+    false_pos = 1 - params[10]     # spec COL
+    true_pos_crc = params[11]      # sens col crc
     false_neg_crc = 1 - params[11] # sens col crc
-    true_neg_crc = params[12] # spec col crc
-    false_pos_crc = 1 - params[12] # spec col crc
 
     transition_nhm = crc_nhm_tp(params)
     transition_hist_lr = crc_nhm_hist_tp(params, hist = 1)
@@ -298,11 +296,11 @@ def crc_screening_tp(params, scr):
     transition_scr[18][18] = 1
 
     # cheeck
-    for i in range(50):
-        for j in range(19):
-            if abs(1 - np.sum(transition_scr[j, :, i])) > 1e-8:
-                print('crc_screening_tp matrix is not valid')
-                exit()
+    # for i in range(50):
+    #     for j in range(19):
+    #         if abs(1 - np.sum(transition_scr[j, :, i])) > 1e-8:
+    #             print('crc_screening_tp matrix is not valid')
+    #             exit()
 
     return transition_scr
 
@@ -339,20 +337,20 @@ def crc_screening(params, scr):
     ])
 
     costs = np.array([
-        np.append(p_screen, 0)               * scr * params[18],
-        np.append(p_surveillance_lr, 0)  * scr * params[18],
+        np.append(p_screen, 0)          * scr * params[18],
+        np.append(p_surveillance_lr, 0) * scr * params[18],
         np.append(p_surveillance_hr, 0) * scr * params[18],
-        np.append(p_screen, 0)               * scr * params[18],
-        np.append(p_surveillance_lr, 0)  * scr * params[18],
+        np.append(p_screen, 0)          * scr * params[18],
+        np.append(p_surveillance_lr, 0) * scr * params[18],
         np.append(p_surveillance_hr, 0) * scr * params[18],
-        np.append(p_screen, 0)               * scr * params[18],
-        np.append(p_surveillance_lr, 0)  * scr * params[18],
+        np.append(p_screen, 0)          * scr * params[18],
+        np.append(p_surveillance_lr, 0) * scr * params[18],
         np.append(p_surveillance_hr, 0) * scr * params[18],
-        np.append(p_screen, 0)               * scr * params[18],
-        np.append(p_surveillance_lr, 0)  * scr * params[18],
+        np.append(p_screen, 0)          * scr * params[18],
+        np.append(p_surveillance_lr, 0) * scr * params[18],
         np.append(p_surveillance_hr, 0) * scr * params[18],
-        np.append(p_screen, 0)               * scr * params[18],
-        np.append(p_surveillance_lr, 0)  * scr * params[18],
+        np.append(p_screen, 0)          * scr * params[18],
+        np.append(p_surveillance_lr, 0) * scr * params[18],
         np.append(p_surveillance_hr, 0) * scr * params[18],
         np.array([params[19] for _ in range(51)]),
         np.array([params[20] for _ in range(51)]),
@@ -366,8 +364,8 @@ def crc_screening(params, scr):
     return np.array([utility, cost])
 
 def calc(params, scr):
-    result = crc_screening(params, scr = scr)
-    return result[0] * 75000 - result[1]
+    ret = crc_screening(params, scr = scr)
+    return ret[0] * 75000 - ret[1]
 
 def regression(x, y):
     sum_x2 = 0
@@ -393,8 +391,8 @@ varZ = np.zeros(30)
 varP = np.zeros(30)
 kurt = np.zeros(30)
 result = np.zeros((30, 6))
-alpha = 0.96
-beta = 1.43
+alpha = 1.0647540122798973
+beta  = 1.6560388150747896
 
 def evppi_calc(level):
     global result
@@ -490,7 +488,6 @@ def mlmc_calc(level):
         if l > 0:
             kurt[l] = (result[l][5] / n - 4 * result[l][4] / n * aveZ[l] + 6 * result[l][3] / n * aveZ[l] ** 2 - 3 * aveZ[l] ** 4) / varZ[l] ** 2
 
-
 def mlmc_test():
     global n_samples
     global n_samples_done
@@ -514,11 +511,10 @@ def mlmc_test():
     varZ = np.zeros(30)
     varP = np.zeros(30)
     kurt = np.zeros(30)
-    n_samples = np.ones(30) * 100
+    n_samples = np.ones(30) * 2000
     n_samples_done = np.zeros(30)
 
-    for l in range(11):
-        result = np.zeros((30, 6))
+    for l in range(8):
         mlmc_calc(l)
         print(str(l) + ' ' + str(aveZ[l]) + ' ' + str(aveP[l]) + ' ' + str(varZ[l]) + ' ' + str(varP[l]) + ' ' + str(kurt[l]))
         with open('./output.txt', 'a') as f:
@@ -545,6 +541,10 @@ def eval_eps(e, level):
     cost = np.array([pow(2, l) for l in range(30)])
     converged = False
     while not converged:
+        print('level = ' + str(level))
+        for l in range(level + 1):
+            print(n_samples[l], end = ' ')
+        print('')
         mlmc_calc(level)
 
         for l in range(2, level + 1):
@@ -597,7 +597,7 @@ def eps_test(eps):
         f.write('eps value mlmc std save N...\n')
         f.write('-----------------------------\n')
 
-    n_samples = np.array([1000 if level < 3 else 0 for level in range(30)])
+    n_samples = np.array([100 if level < 3 else 0 for level in range(30)])
     n_samples_done = np.zeros(30)
     result = np.zeros((30, 6))
     aveZ = np.zeros(30)
@@ -630,4 +630,4 @@ def eps_test(eps):
 
 if __name__ == '__main__':
     mlmc_test()
-    eps_test(np.array([1, 0.5]))
+    eps_test(np.array([100, 50, 20, 10]))
