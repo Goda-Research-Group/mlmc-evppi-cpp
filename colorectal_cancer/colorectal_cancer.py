@@ -391,8 +391,8 @@ varZ = np.zeros(30)
 varP = np.zeros(30)
 kurt = np.zeros(30)
 result = np.zeros((30, 6))
-alpha = 1.0647540122798973
-beta  = 1.6560388150747896
+alpha = 0.918167
+beta  = 1.36201
 
 def evppi_calc(level):
     global result
@@ -629,5 +629,5 @@ def eps_test(eps):
             f.write('\n')
 
 if __name__ == '__main__':
-    mlmc_test()
-    eps_test(np.array([100, 50, 20, 10]))
+    # mlmc_test()
+    eps_test(np.array([100, 50, 20, 10, 5]))
