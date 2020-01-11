@@ -541,10 +541,6 @@ def eval_eps(e, level):
     cost = np.array([pow(2, l) for l in range(30)])
     converged = False
     while not converged:
-        print('level = ' + str(level))
-        for l in range(level + 1):
-            print(n_samples[l], end = ' ')
-        print('')
         mlmc_calc(level)
 
         for l in range(2, level + 1):
