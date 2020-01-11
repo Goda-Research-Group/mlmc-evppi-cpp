@@ -13,9 +13,9 @@ random_device rd;
 mt19937 generator(rd());
 
 normal_distribution<double> dist_rho(0.65, 0.1);
-lognormal_distribution<double> dist_cost_ambulatory(7.74, 0.0391);
-lognormal_distribution<double> dist_cost_hospital(8.77, 0.150);
-lognormal_distribution<double> dist_cost_death(8.33, 0.133);
+lognormal_distribution<double> dist_cost_ambulatory(7.74, 0.039);
+lognormal_distribution<double> dist_cost_hospital(8.77, 0.15);
+lognormal_distribution<double> dist_cost_death(8.33, 0.13);
 
 vector<double> qaly_of_states(4);
 vector<double> cost_of_states(4);
@@ -51,26 +51,18 @@ void sampling_init(EvppiInfo *info) {
 }
 
 void pre_sampling(EvppiInfo *info) {
-    int N = 1000;
-
-    double pi = beta(28, 85);
-    binomial_distribution<int> dist_side_effect_of_standard(N, pi);
-    info->sample[0] = (double)dist_side_effect_of_standard(generator) / (double)N;
-
-    double rho = dist_rho(generator);
-    binomial_distribution<int> dist_side_effect_of_novel(N, pi * rho);
-    info->sample[1] = (double)dist_side_effect_of_novel(generator) / (double)N;
-
+    info->sample[0] = beta(28, 85);
+    info->sample[1] = info->sample[0] * dist_rho(generator);
     info->sample[8] = beta(11, 18);
     info->sample[9] = beta(5.12, 6.26);
-    info->sample[10] = beta(2, 13);
+    info->sample[10] = beta(2, 17);
     info->sample[11] = beta(3.63, 6.74);
 }
 
 void post_sampling(EvppiInfo *info) {
     info->sample[2] = beta(5.75, 5.75);
-    info->sample[3] = beta(0.867, 3.47);
-    info->sample[4] = beta(18.2, 0.372);
+    info->sample[3] = beta(0.87, 3.47);
+    info->sample[4] = beta(18.23, 0.372);
     info->sample[5] = dist_cost_ambulatory(generator);
     info->sample[6] = dist_cost_hospital(generator);
     info->sample[7] = dist_cost_death(generator);
@@ -142,8 +134,8 @@ int main() {
     transition[3] = {0.0, 0.0, 0.0, 1.0};
 
     MlmcInfo *info = mlmc_init(1, 2, 20, 1.0, 0.25);
-    // smc_evpi_calc(info->layer[0].evppi_info, 100000); // 3.697e+01
-    mlmc_test(info, 10, 2000);
+    // smc_evpi_calc(info->layer[0].evppi_info, 10000000); // 33.09
+    mlmc_test(info, 10, 20000);
 
     vector <double> eps = {0.2, 0.1, 0.05, 0.02, 0.01};
     mlmc_test_eval_eps(info, eps);
