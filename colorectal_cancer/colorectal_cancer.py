@@ -530,6 +530,26 @@ def mlmc_test():
         f.write('alpha = ' + str(alpha) + '\n')
         f.write('beta  = ' + str(beta) + '\n\n')
 
+def sml_calc(n):
+    sum_of_max = 0.0
+    sum_of_scr = 0.0
+    sum_of_no_scr = 0.0
+
+    for _ in range(n):
+        params = np.zeros((21, 1))
+        params = pre_sampling(params)
+        params = post_sampling(params, 1)
+
+        no_scr = calc(params[:, 0], scr = 0)
+        scr = calc(params[:, 0], scr = 1)
+
+        sum_of_max += max(no_scr, scr)
+        sum_of_no_scr += no_scr
+        sum_of_scr += scr
+
+    max_of_sum = max(sum_of_scr, sum_of_no_scr)
+    print("evpi = " + str((sum_of_max - max_of_sum) / n))
+
 def eval_eps(e, level):
     global n_samples
     global n_samples_done
@@ -625,5 +645,6 @@ def eps_test(eps):
             f.write('\n')
 
 if __name__ == '__main__':
-    # mlmc_test()
+    sml_calc(10000)
+    mlmc_test()
     eps_test(np.array([100, 50, 20, 10, 5]))
