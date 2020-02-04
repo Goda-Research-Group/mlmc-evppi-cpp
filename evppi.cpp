@@ -13,14 +13,14 @@ using namespace std;
 Result *result_init();
 
 void evppi_calc(EvppiInfo *info, Result *result) {
-    pre_sampling(info);
+    pre_sampling(info->model_info);
 
     double sum_of_max = 0.0;
     vector <double> sum(info->model_num);
 
     if (info->level == 0) {
         for (int m = 0; m < info->m; m++) {
-            post_sampling(info);
+            post_sampling(info->model_info);
             f(info);
 
             double mx = -1e30;
@@ -46,7 +46,7 @@ void evppi_calc(EvppiInfo *info, Result *result) {
         vector <double> sum_a(info->model_num), sum_b(info->model_num);
 
         for (int m = 0; m < info->m / 2; m++) {
-            post_sampling(info);
+            post_sampling(info->model_info);
             f(info);
 
             double mx = -1e30;
@@ -59,7 +59,7 @@ void evppi_calc(EvppiInfo *info, Result *result) {
         }
 
         for (int m = info->m / 2; m < info->m; m++) {
-            post_sampling(info);
+            post_sampling(info->model_info);
             f(info);
 
             double mx = -1e30;
@@ -169,8 +169,8 @@ void smc_evpi_calc(EvppiInfo *info, int n) {
     double sum_of_max = 0.0;
     vector <double> sum(info->model_num);
     for (int i = 0; i < n; i++) {
-        pre_sampling(info);
-        post_sampling(info);
+        pre_sampling(info->model_info);
+        post_sampling(info->model_info);
         f(info);
         double mx = -1e30;
         for (int j = 0; j < info->model_num; j++) {

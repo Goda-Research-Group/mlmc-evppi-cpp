@@ -6,12 +6,15 @@
 
 using namespace std;
 
+typedef struct ModelInfo ModelInfo;
+
 typedef struct {
     int level;
     int m; // inner loop の回数
     int model_num;
     vector <double> sample;
     vector <double> val;
+    ModelInfo *model_info;
 } EvppiInfo;
 
 typedef struct {
@@ -39,8 +42,8 @@ typedef struct {
 } MlmcInfo;
 
 void sampling_init(EvppiInfo *info);
-void pre_sampling(EvppiInfo *info);
-void post_sampling(EvppiInfo *info);
+void pre_sampling(ModelInfo *info);
+void post_sampling(ModelInfo *info);
 void f(EvppiInfo *info);
 
 void smc_evpi_calc(EvppiInfo *info, int n);
