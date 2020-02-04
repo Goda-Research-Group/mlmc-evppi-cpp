@@ -21,12 +21,12 @@ void sampling_init(EvppiInfo *info) {
     info->val.resize(info->model_num);
 }
 
-void pre_sampling(ModelInfo *info) {
-    info->x = x_dist(generator);
+void pre_sampling(ModelInfo *model) {
+    model->x = x_dist(generator);
 }
 
-void post_sampling(ModelInfo *info) {
-    info->y = y_dist(generator);
+void post_sampling(ModelInfo *model) {
+    model->y = y_dist(generator);
 }
 
 void f(EvppiInfo *info) {

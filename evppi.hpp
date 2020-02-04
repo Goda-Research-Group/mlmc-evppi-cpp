@@ -42,8 +42,8 @@ typedef struct {
 } MlmcInfo;
 
 void sampling_init(EvppiInfo *info);
-void pre_sampling(ModelInfo *info);
-void post_sampling(ModelInfo *info);
+void pre_sampling(ModelInfo *model);
+void post_sampling(ModelInfo *model);
 void f(EvppiInfo *info);
 
 void smc_evpi_calc(EvppiInfo *info, int n);
