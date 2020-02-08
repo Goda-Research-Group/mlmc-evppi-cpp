@@ -10,13 +10,6 @@ using namespace std;
 random_device rd;
 mt19937 generator(rd());
 
-int m0 = 1;
-int s = 2;
-int max_level = 20;
-int test_level = 10;
-int n_sample = 2000;
-int lambda = 10000;
-
 vector <double> u(4), post_u(2);
 Matrix sigma(4, 4), post_sigma(2, 2);
 Matrix sigma2_inv_sigma4(2, 2);
@@ -38,13 +31,17 @@ normal_distribution<double> dist17(0.2, 0.05);
 normal_distribution<double> dist18(-0.1, 0.02);
 normal_distribution<double> dist19(0.5, 0.2);
 
+struct ModelInfo {
+    double x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11, x12, x13, x14, x15, x16, x17, x18, x19;
+};
+
 void sampling_init(EvppiInfo *info) {
     info->model_num = 2;
-    info->sample.resize(20);
+    info->model_info = new ModelInfo;
     info->val.resize(info->model_num);
 }
 
-void pre_sampling(EvppiInfo *info) {
+void pre_sampling(ModelInfo *model) {
     vector <double> rand(4), ret(4);
     rand[0] = dist_normal(generator);
     rand[1] = dist_normal(generator);
@@ -52,10 +49,10 @@ void pre_sampling(EvppiInfo *info) {
     rand[3] = dist_normal(generator);
     rand_multinormal(u, sigma, rand, ret);
 
-    info->sample[5] = ret[0];
-    info->sample[6] = dist6(generator);
-    info->sample[14] = ret[2];
-    info->sample[15] = dist15(generator);
+    model->x5 = ret[0];
+    model->x6 = dist6(generator);
+    model->x14 = ret[2];
+    model->x15 = dist15(generator);
 
     Matrix diff(2, 1);
     diff[0][0] = ret[0] - u[0];
@@ -66,46 +63,51 @@ void pre_sampling(EvppiInfo *info) {
     post_u[1] = u[3] + tmp[1][0];
 }
 
-void post_sampling(EvppiInfo *info) {
+void post_sampling(ModelInfo *model) {
     vector <double> rand(2), ret(2);
     rand[0] = dist_normal(generator);
     rand[1] = dist_normal(generator);
     rand_multinormal(post_u, post_sigma, rand, ret);
 
-    info->sample[1] = dist1(generator);
-    info->sample[2] = dist2(generator);
-    info->sample[3] = dist3(generator);
-    info->sample[4] = dist4(generator);
-    info->sample[7] = ret[0];
-    info->sample[8] = dist8(generator);
-    info->sample[9] = dist9(generator);
-    info->sample[10] = dist10(generator);
-    info->sample[11] = dist11(generator);
-    info->sample[12] = dist12(generator);
-    info->sample[13] = dist13(generator);
-    info->sample[16] = ret[1];
-    info->sample[17] = dist17(generator);
-    info->sample[18] = dist18(generator);
-    info->sample[19] = dist19(generator);
+    model->x7 = ret[0];
+    model->x16 = ret[1];
+
+    model->x1 = dist1(generator);
+    model->x2 = dist2(generator);
+    model->x3 = dist3(generator);
+    model->x4 = dist4(generator);
+    model->x8 = dist8(generator);
+    model->x9 = dist9(generator);
+    model->x10 = dist10(generator);
+    model->x11 = dist11(generator);
+    model->x12 = dist12(generator);
+    model->x13 = dist13(generator);
+    model->x17 = dist17(generator);
+    model->x18 = dist18(generator);
+    model->x19 = dist19(generator);
 }
 
 void f(EvppiInfo *info) {
-    double tmp1, tmp2, tmp3;
+    ModelInfo *model = info->model_info;
 
-    tmp1 = info->sample[5] * info->sample[6] * info->sample[7];
-    tmp2 = info->sample[8] * info->sample[9] * info->sample[10];
-    tmp3 = info->sample[1] + info->sample[2] * info->sample[3] * info->sample[4];
+    double tmp1, tmp2, tmp3;
+    int lambda = 10000;
+
+    tmp1 = model->x5 * model->x6 * model->x7;
+    tmp2 = model->x8 * model->x9 * model->x10;
+    tmp3 = model->x1 + model->x2 * model->x3 * model->x4;
     info->val[0] = lambda * (tmp1 + tmp2) - tmp3;
 
-    tmp1 = info->sample[14] * info->sample[15] * info->sample[16];
-    tmp2 = info->sample[17] * info->sample[18] * info->sample[19];
-    tmp3 = info->sample[11] + info->sample[12] * info->sample[13] * info->sample[4];
+    tmp1 = model->x14 * model->x15 * model->x16;
+    tmp2 = model->x17 * model->x18 * model->x19;
+    tmp3 = model->x11 + model->x12 * model->x13 * model->x4;
     info->val[1] = lambda * (tmp1 + tmp2) - tmp3;
 }
 
 void matrix_init() {
-    double rho = 0.6;
     u = {0.7, 3.0, 0.8, 3.0};
+
+    double rho = 0.6;
     double r5 = 0.1, r7 = 0.5, r14 = 0.1, r16 = 1.0;
 
     sigma[0] = { r5 * r5,        r5 * r7 * rho,  r5 * r14 * rho,  r5 * r16 * rho  };
@@ -140,10 +142,9 @@ void matrix_init() {
 int main() {
     matrix_init();
 
-    MlmcInfo *info = mlmc_init(m0, s, max_level, 1.0, 0.25);
-    mlmc_test(info, test_level, n_sample);
-
-    // smc_evpi_calc(info->layer[0].evppi_info, 10000000);
+    MlmcInfo *info = mlmc_init(1, 2, 30, 1.0, 0.25);
+    // smc_evpi_calc(info->layer[0].evppi_info, 1000000);
+    mlmc_test(info, 10, 2000);
 
     vector <double> eps = {2.0, 1.0, 0.5, 0.2, 0.1};
     mlmc_test_eval_eps(info, eps);
