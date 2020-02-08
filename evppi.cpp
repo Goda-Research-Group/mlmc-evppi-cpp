@@ -82,7 +82,6 @@ void evppi_calc(EvppiInfo *info, Result *result) {
 
         double z = (max_of_sum_a + max_of_sum_b) / 2.0 - max_of_sum;
 
-        // zがゼロに近いとき、数値誤差でおかしな値になっていそう。
         if (abs(z) > abs(max_of_sum) * 1e-10) {
             result->z1 += z;
             result->z2 += z * z;
